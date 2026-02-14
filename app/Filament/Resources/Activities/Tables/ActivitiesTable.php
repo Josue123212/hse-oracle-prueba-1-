@@ -25,6 +25,14 @@ class ActivitiesTable
                     ->sortable(),
                 TextColumn::make('frecuencia')
                     ->label('Frecuencia')
+                    ->formatStateUsing(fn (string $state) => [
+                        'diario' => 'Diario',
+                        'semanal' => 'Semanal',
+                        'mensual' => 'Mensual',
+                        'trimestral' => 'Trimestral',
+                        'anual' => 'Anual',
+                        'cuando_requiera' => 'Cuando se requiera',
+                    ][$state] ?? $state)
                     ->searchable(),
                 TextColumn::make('location.nombre')
                     ->label('Sede')

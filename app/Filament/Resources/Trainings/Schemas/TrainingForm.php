@@ -39,6 +39,7 @@ class TrainingForm
                     ->options([
                         'borrador' => 'Borrador',
                         'publicado' => 'Publicado',
+                        'finalizada' => 'Finalizada',
                     ])
                     ->default('borrador')
                     ->required(),

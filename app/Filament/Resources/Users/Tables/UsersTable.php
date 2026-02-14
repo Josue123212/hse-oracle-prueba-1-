@@ -30,9 +30,10 @@ class UsersTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('role_id')
-                    ->numeric()
-                    ->sortable(),
+                TextColumn::make('role.name')
+                    ->label('Rol')
+                    ->sortable()
+                    ->searchable(),
             ])
             ->filters([
                 //

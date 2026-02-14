@@ -29,6 +29,8 @@ class ActivityForm
                     'semanal' => 'Semanal',
                     'mensual' => 'Mensual',
                     'anual' => 'Anual',
+                    'trimestral' => 'Trimestral',
+                    'cuando_requiera' => 'Cuando se requiera',
                 ])
                 ->required()
                 ->native(false),

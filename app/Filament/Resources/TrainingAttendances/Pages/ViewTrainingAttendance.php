@@ -5,6 +5,7 @@ namespace App\Filament\Resources\TrainingAttendances\Pages;
 use App\Filament\Resources\TrainingAttendances\TrainingAttendanceResource;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Actions\DeleteAction;
 
 class ViewTrainingAttendance extends ViewRecord
 {
@@ -14,6 +15,7 @@ class ViewTrainingAttendance extends ViewRecord
     {
         return [
             EditAction::make(),
+            DeleteAction::make(),
         ];
     }
 }
