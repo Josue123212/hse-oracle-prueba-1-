@@ -9,7 +9,9 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\FontProviders\GoogleFontProvider;
 use Filament\Support\Colors\Color;
+use Illuminate\Support\Facades\View;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -27,6 +29,9 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->font('Inria Sans', provider: GoogleFontProvider::class)
+            ->brandLogo(fn () => view('filament.admin.logo'))
+            ->brandLogoHeight('5rem')
             ->login()
             ->colors([
                 'primary' => Color::Amber,

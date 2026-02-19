@@ -7,6 +7,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Storage;
 
 class InspectionsTable
 {
@@ -38,6 +39,11 @@ class InspectionsTable
                 \Filament\Tables\Columns\TextColumn::make('user.name')
                     ->label('Inspector')
                     ->searchable(),
+                \Filament\Tables\Columns\TextColumn::make('archivo')
+                    ->label('Documento')
+                    ->getStateUsing(fn ($record) => $record->archivo_detectado ? 'Ver' : '')
+                    ->url(fn ($record) => $record->archivo_detectado ? Storage::url("inspecciones/{$record->anio}/" . str_pad((string) $record->mes, 2, '0', STR_PAD_LEFT) . "/inspeccion-{$record->id}.pdf") : null)
+                    ->openUrlInNewTab(),
                 \Filament\Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
