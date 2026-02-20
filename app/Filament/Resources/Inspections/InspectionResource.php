@@ -15,6 +15,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class InspectionResource extends Resource
 {
@@ -53,6 +54,29 @@ class InspectionResource extends Resource
             'create' => CreateInspection::route('/create'),
             'view' => ViewInspection::route('/{record}'),
             'edit' => EditInspection::route('/{record}/edit'),
+        ];
+    }
+
+     public static function getGloballySearchableAttributes(): array
+    {
+        return [
+            'inspectionType.nombre',
+            'activity.nombre',
+            'location.nombre',
+            'user.name',
+            'estado',
+            'observaciones',
+        ];
+    }
+
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        return [
+            'Tipo' => $record->inspectionType->nombre ?? '',
+            'Actividad' => $record->activity->nombre ?? '',
+            'Sede' => $record->location->nombre ?? '',
+            'Inspector' => $record->user->name ?? '',
+            'Estado' => $record->estado ?? '',
         ];
     }
 }

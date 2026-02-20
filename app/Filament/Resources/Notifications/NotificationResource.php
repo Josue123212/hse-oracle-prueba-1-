@@ -22,6 +22,8 @@ class NotificationResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'titulo';
 
+    protected static bool $isGloballySearchable = false;
+
     public static function form(Schema $schema): Schema
     {
         return NotificationForm::configure($schema);

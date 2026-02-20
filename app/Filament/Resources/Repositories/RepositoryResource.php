@@ -15,6 +15,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class RepositoryResource extends Resource
 {
@@ -55,5 +56,23 @@ class RepositoryResource extends Resource
             'edit' => EditRepository::route('/{record}/edit'),
         ];
     }
-}
 
+    public static function getGloballySearchableAttributes(): array
+    {
+        return [
+            'nombre',
+            'url',
+            'estado',
+            'user.name',
+        ];
+    }
+
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        return [
+            'URL' => $record->url ?? '',
+            'Estado' => $record->estado ?? '',
+            'Usuario' => $record->user->name ?? '',
+        ];
+    }
+}

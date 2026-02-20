@@ -15,6 +15,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class TrainingMaterialResource extends Resource
 {
@@ -53,6 +54,23 @@ class TrainingMaterialResource extends Resource
             'create' => CreateTrainingMaterial::route('/create'),
             'view' => ViewTrainingMaterial::route('/{record}'),
             'edit' => EditTrainingMaterial::route('/{record}/edit'),
+        ];
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return [
+            'nombre',
+            'url_material',
+            'training.titulo',
+        ];
+    }
+
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        return [
+            'Capacitación' => $record->training->titulo ?? '',
+            'URL' => $record->url_material ?? '',
         ];
     }
 }

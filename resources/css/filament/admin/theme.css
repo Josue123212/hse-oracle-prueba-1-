@@ -1,0 +1,93 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+
+.fi-topbar-nav-groups {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.fi-topbar-nav-groups .fi-global-search-ctn {
+    width: 100%;
+}
+
+.fi-topbar-nav-groups .fi-global-search {
+    flex: 1 1 auto;
+}
+
+.fi-topbar-nav-groups .fi-global-search-field {
+    width: 100%;
+}
+
+.fi-topbar-nav-groups .fi-global-search-field .fi-input {
+    width: 100%;
+}
+
+.fi-sidebar-header-ctn {
+    padding-top: 2rem;
+}
+
+.qa-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.qa-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 7rem;
+    width: 100%;
+    border-radius: 0.9rem;
+    border: 1px solid #2563eb;
+    background-color: #ffffff;
+    color: #1f2937;
+    cursor: pointer;
+    transition: background-color 150ms ease, box-shadow 150ms ease, transform 120ms ease;
+}
+
+.qa-card:hover {
+    background-color: #eff6ff;
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+    transform: translateY(-1px);
+}
+
+.qa-card-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.qa-card-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.hse-sidebar-brand{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:0.4rem;
+    padding:1.5rem 0.75rem 1rem;
+    border-top:1px solid rgba(15,23,42,0.06);
+    margin-top:0;
+}
+.hse-sidebar-brand__logo{
+    height:4.5rem;
+    width:auto;
+    object-fit:contain;
+    opacity:0.98;
+}
+.hse-sidebar-brand__text{
+    font-size:0.75rem;
+    color:rgba(15,23,42,0.6);
+}
+.hse-sidebar-brand__link{
+    font-size:0.75rem;
+    color:#2563eb;
+    text-decoration:none;
+}
+

@@ -16,6 +16,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use App\Filament\Resources\Programs\RelationManagers\ElementsRelationManager;
+use Illuminate\Database\Eloquent\Model;
 
 class ProgramResource extends Resource
 {
@@ -54,6 +55,23 @@ class ProgramResource extends Resource
             'create' => CreateProgram::route('/create'),
             'view' => ViewProgram::route('/{record}'),
             'edit' => EditProgram::route('/{record}/edit'),
+        ];
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return [
+            'codigo',
+            'autor',
+            'version',
+        ];
+    }
+
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        return [
+            'Autor' => $record->autor ?? '',
+            'Versión' => $record->version ?? '',
         ];
     }
 }

@@ -15,6 +15,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class ReportResource extends Resource
 {
@@ -53,6 +54,25 @@ class ReportResource extends Resource
             'create' => CreateReport::route('/create'),
             'view' => ViewReport::route('/{record}'),
             'edit' => EditReport::route('/{record}/edit'),
+        ];
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return [
+            'reportType.nombre',
+            'user.name',
+            'estado',
+            'observaciones',
+        ];
+    }
+
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        return [
+            'Tipo' => $record->reportType->nombre ?? '',
+            'Responsable' => $record->user->name ?? '',
+            'Estado' => $record->estado ?? '',
         ];
     }
 }

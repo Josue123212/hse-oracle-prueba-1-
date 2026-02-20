@@ -15,6 +15,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class ActivityResource extends Resource
 {
@@ -53,6 +54,23 @@ class ActivityResource extends Resource
             'create' => CreateActivity::route('/create'),
             'view' => ViewActivity::route('/{record}'),
             'edit' => EditActivity::route('/{record}/edit'),
+        ];
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return [
+            'codigo',
+            'nombre',
+            'location.nombre',
+        ];
+    }
+
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        return [
+            'Nombre' => $record->nombre ?? '',
+            'Sede' => $record->location->nombre ?? '',
         ];
     }
 }

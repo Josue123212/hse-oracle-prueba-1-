@@ -15,6 +15,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class ElementResource extends Resource
 {
@@ -53,6 +54,24 @@ class ElementResource extends Resource
             'create' => CreateElement::route('/create'),
             'view' => ViewElement::route('/{record}'),
             'edit' => EditElement::route('/{record}/edit'),
+        ];
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return [
+            'nombre',
+            'program.codigo',
+            'activity.codigo',
+            'activity.nombre',
+        ];
+    }
+
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        return [
+            'Programa' => $record->program->codigo ?? '',
+            'Actividad' => $record->activity->nombre ?? '',
         ];
     }
 }
