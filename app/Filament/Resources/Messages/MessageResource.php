@@ -11,6 +11,7 @@ use App\Filament\Resources\Messages\Schemas\MessageInfolist;
 use App\Filament\Resources\Messages\Tables\MessagesTable;
 use App\Models\Message;
 use BackedEnum;
+use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -20,9 +21,11 @@ class MessageResource extends Resource
 {
     protected static ?string $model = Message::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = null;
 
     protected static ?string $recordTitleAttribute = 'contenido';
+
+    protected static string|UnitEnum|null $navigationGroup = 'Usuarios y Comunicación';
 
     public static function form(Schema $schema): Schema
     {

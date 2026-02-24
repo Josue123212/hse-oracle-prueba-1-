@@ -11,6 +11,7 @@ use App\Filament\Resources\InspectionTypes\Schemas\InspectionTypeInfolist;
 use App\Filament\Resources\InspectionTypes\Tables\InspectionTypesTable;
 use App\Models\InspectionType;
 use BackedEnum;
+use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -20,9 +21,11 @@ class InspectionTypeResource extends Resource
 {
     protected static ?string $model = InspectionType::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = null;
 
     protected static ?string $recordTitleAttribute = 'nombre';
+
+    protected static string|UnitEnum|null $navigationGroup = 'Evaluaciones y Auditorías';
 
     public static function form(Schema $schema): Schema
     {

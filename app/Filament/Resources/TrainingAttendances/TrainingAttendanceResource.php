@@ -11,6 +11,7 @@ use App\Filament\Resources\TrainingAttendances\Schemas\TrainingAttendanceInfolis
 use App\Filament\Resources\TrainingAttendances\Tables\TrainingAttendancesTable;
 use App\Models\TrainingAttendance;
 use BackedEnum;
+use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -20,9 +21,11 @@ class TrainingAttendanceResource extends Resource
 {
     protected static ?string $model = TrainingAttendance::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = null;
 
     protected static ?string $recordTitleAttribute = 'fecha_inicio';
+
+    protected static string|UnitEnum|null $navigationGroup = 'Capacitación';
 
     public static function form(Schema $schema): Schema
     {

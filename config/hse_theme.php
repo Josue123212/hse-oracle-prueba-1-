@@ -21,33 +21,32 @@ return [
 
     'navigation_groups' => [
         [
-            'label' => 'Programs',
-            'icon' => 'gmdi-assignment',
+            'label' => 'Gestión de Elementos',
+            'icon' => 'gmdi-layers',
         ],
         [
-            'label' => 'Training',
-            'icon' => 'gmdi-school',
-        ],
-        [
-            'label' => 'Audits',
+            'label' => 'Evaluaciones y Auditorías',
             'icon' => 'gmdi-fact-check',
         ],
         [
-            'label' => 'Documentation',
-            'icon' => 'gmdi-description',
+            'label' => 'Organización y Ubicaciones',
+            'icon' => 'gmdi-location-city',
         ],
         [
-            'label' => 'Communications',
-            'icon' => 'gmdi-campaign',
+            'label' => 'Usuarios y Comunicación',
+            'icon' => 'gmdi-groups',
         ],
         [
-            'label' => 'Catalogs',
-            'icon' => 'gmdi-folder-copy',
+            'label' => 'Capacitación',
+            'icon' => 'gmdi-school',
         ],
         [
-            'label' => 'Security',
-            'icon' => 'gmdi-admin-panel-settings',
+            'label' => 'Reportes y Seguimiento',
+            'icon' => 'gmdi-insights',
+        ],
+        [
+            'label' => 'Sistema',
+            'icon' => 'gmdi-settings',
         ],
     ],
 ];
-

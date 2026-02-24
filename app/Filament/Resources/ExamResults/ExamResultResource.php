@@ -11,6 +11,7 @@ use App\Filament\Resources\ExamResults\Schemas\ExamResultInfolist;
 use App\Filament\Resources\ExamResults\Tables\ExamResultsTable;
 use App\Models\ExamResult;
 use BackedEnum;
+use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -20,9 +21,11 @@ class ExamResultResource extends Resource
 {
     protected static ?string $model = ExamResult::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = null;
 
     protected static ?string $recordTitleAttribute = 'nota';
+
+    protected static string|UnitEnum|null $navigationGroup = 'Sistema';
 
     public static function form(Schema $schema): Schema
     {

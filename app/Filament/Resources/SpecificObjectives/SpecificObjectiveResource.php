@@ -11,6 +11,7 @@ use App\Filament\Resources\SpecificObjectives\Schemas\SpecificObjectiveInfolist;
 use App\Filament\Resources\SpecificObjectives\Tables\SpecificObjectivesTable;
 use App\Models\SpecificObjective;
 use BackedEnum;
+use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -20,9 +21,11 @@ class SpecificObjectiveResource extends Resource
 {
     protected static ?string $model = SpecificObjective::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = null;
 
     protected static ?string $recordTitleAttribute = 'nombre';
+
+    protected static string|UnitEnum|null $navigationGroup = 'Gestión de Elementos';
 
     public static function form(Schema $schema): Schema
     {

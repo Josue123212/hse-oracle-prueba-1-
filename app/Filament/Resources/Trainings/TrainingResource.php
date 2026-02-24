@@ -11,6 +11,7 @@ use App\Filament\Resources\Trainings\Schemas\TrainingInfolist;
 use App\Filament\Resources\Trainings\Tables\TrainingsTable;
 use App\Models\Training;
 use BackedEnum;
+use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -21,9 +22,11 @@ class TrainingResource extends Resource
 {
     protected static ?string $model = Training::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = null;
 
     protected static ?string $recordTitleAttribute = 'titulo';
+
+    protected static string|UnitEnum|null $navigationGroup = 'Capacitación';
 
     public static function form(Schema $schema): Schema
     {

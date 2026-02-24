@@ -9,6 +9,7 @@ use App\Filament\Resources\ExamQuestions\Schemas\ExamQuestionForm;
 use App\Filament\Resources\ExamQuestions\Tables\ExamQuestionsTable;
 use App\Models\ExamQuestion;
 use BackedEnum;
+use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -18,9 +19,11 @@ class ExamQuestionResource extends Resource
 {
     protected static ?string $model = ExamQuestion::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = null;
 
     protected static ?string $recordTitleAttribute = 'pregunta';
+
+    protected static string|UnitEnum|null $navigationGroup = 'Sistema';
 
     public static function form(Schema $schema): Schema
     {

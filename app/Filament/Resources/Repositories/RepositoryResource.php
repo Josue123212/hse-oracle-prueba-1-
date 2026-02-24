@@ -11,6 +11,7 @@ use App\Filament\Resources\Repositories\Schemas\RepositoryInfolist;
 use App\Filament\Resources\Repositories\Tables\RepositoriesTable;
 use App\Models\Repository;
 use BackedEnum;
+use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -21,9 +22,11 @@ class RepositoryResource extends Resource
 {
     protected static ?string $model = Repository::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedFolder;
+    protected static string|BackedEnum|null $navigationIcon = null;
 
     protected static ?string $recordTitleAttribute = 'nombre';
+
+    protected static string|UnitEnum|null $navigationGroup = 'Gestión de Elementos';
 
     public static function form(Schema $schema): Schema
     {

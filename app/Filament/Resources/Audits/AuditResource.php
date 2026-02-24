@@ -11,6 +11,7 @@ use App\Filament\Resources\Audits\Schemas\AuditInfolist;
 use App\Filament\Resources\Audits\Tables\AuditsTable;
 use App\Models\Audit;
 use BackedEnum;
+use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -20,9 +21,11 @@ class AuditResource extends Resource
 {
     protected static ?string $model = Audit::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = null;
 
     protected static ?string $recordTitleAttribute = 'nombre';
+
+    protected static string|UnitEnum|null $navigationGroup = 'Evaluaciones y Auditorías';
 
     public static function form(Schema $schema): Schema
     {
