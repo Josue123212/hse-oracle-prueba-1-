@@ -27,8 +27,10 @@ class PromotionsForToday extends BaseWidget
         return $table
             ->query(
                 Promotion::query()
-                    ->whereDate('fecha_programada', '<=', now()->toDateString())
                     ->whereIn('estado', ['planificado', 'en_curso'])
+                    ->whereHas('activity.executions', function ($query) {
+                        $query->whereDate('fecha_programada', now());
+                    })
             )
             ->heading('Campañas de Promoción para Hoy')
             ->columns([

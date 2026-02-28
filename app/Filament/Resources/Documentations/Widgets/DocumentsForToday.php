@@ -40,42 +40,8 @@ class DocumentsForToday extends BaseWidget
                         $query->where('tipo', 'documentacion')
                               ->orWhereHas('documentation');
                     })
-                    ->where(function ($q) {
-                        $today = now();
-                        // REMOVED: Unico/Eventual logic (handled by separate widget/table)
-                        
-                        $q->where(function ($sq) use ($today) {
-                             $sq->where('frecuencia', 'diario')
-                               ->whereDate('fecha_inicio', '<=', $today);
-                        });
-                        $q->orWhere(function ($sq) use ($today) {
-                              $sq->where('frecuencia', 'semanal')
-                                ->whereDate('fecha_inicio', '<=', $today)
-                                ->whereRaw("EXTRACT(DOW FROM fecha_inicio) = ?", [$today->dayOfWeek]);
-                        });
-                        $q->orWhere(function ($sq) use ($today) {
-                              $sq->where('frecuencia', 'mensual')
-                                ->whereDate('fecha_inicio', '<=', $today)
-                                ->whereRaw("EXTRACT(DAY FROM fecha_inicio) = ?", [$today->day]);
-                        });
-                        $q->orWhere(function ($sq) use ($today) {
-                              $sq->where('frecuencia', 'trimestral')
-                                ->whereDate('fecha_inicio', '<=', $today)
-                                ->whereRaw("EXTRACT(DAY FROM fecha_inicio) = ?", [$today->day])
-                                ->whereRaw("MOD((EXTRACT(YEAR FROM AGE(?, fecha_inicio)) * 12 + EXTRACT(MONTH FROM AGE(?, fecha_inicio))), 3) = 0", [$today, $today]);
-                        });
-                        $q->orWhere(function ($sq) use ($today) {
-                              $sq->where('frecuencia', 'semestral')
-                                ->whereDate('fecha_inicio', '<=', $today)
-                                ->whereRaw("EXTRACT(DAY FROM fecha_inicio) = ?", [$today->day])
-                                ->whereRaw("MOD((EXTRACT(YEAR FROM AGE(?, fecha_inicio)) * 12 + EXTRACT(MONTH FROM AGE(?, fecha_inicio))), 6) = 0", [$today, $today]);
-                        });
-                        $q->orWhere(function ($sq) use ($today) {
-                              $sq->where('frecuencia', 'anual')
-                                ->whereDate('fecha_inicio', '<=', $today)
-                                ->whereRaw("EXTRACT(DAY FROM fecha_inicio) = ?", [$today->day])
-                                ->whereRaw("EXTRACT(MONTH FROM fecha_inicio) = ?", [$today->month]);
-                        });
+                    ->whereHas('executions', function ($query) {
+                        $query->whereDate('fecha_programada', now());
                     })
             )
             ->heading('Documentación Programada para Hoy')

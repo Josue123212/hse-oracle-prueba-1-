@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Enums\ActivityState;
 
 class ActivityExecution extends Model
 {
@@ -21,6 +22,7 @@ class ActivityExecution extends Model
         'fecha_programada' => 'date',
         'fecha_ejecucion_real' => 'date',
         'data' => 'array',
+        'estado' => ActivityState::class,
     ];
 
     public function activity(): BelongsTo

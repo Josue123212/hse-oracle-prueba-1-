@@ -48,7 +48,7 @@ class TrainingForm
                                     ->preload(),
 
                                 DatePicker::make('fecha_programada')
-                                    ->label('Fecha Programada')
+                                    ->label('Fecha Inicial')
                                     ->required()
                                     ->live(),
                                 

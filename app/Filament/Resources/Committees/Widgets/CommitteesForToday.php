@@ -29,33 +29,11 @@ class CommitteesForToday extends BaseWidget
             ->query(
                 Committee::query()
                     ->whereIn('estado', ['programado', 'en_proceso'])
-                    ->where(function ($query) {
-                        $today = now();
-                        $query->where(function ($q) use ($today) {
-                                $q->whereIn('frecuencia', ['unico', 'eventual'])
-                                ->whereDate('fecha_programada', $today);
-                        })
-                        ->orWhere(function ($q) use ($today) {
-                                $q->where('frecuencia', 'diario')
-                                ->whereDate('fecha_programada', '<=', $today);
-                        })
-                        ->orWhere(function ($q) use ($today) {
-                                $q->where('frecuencia', 'semanal')
-                                ->whereDate('fecha_programada', '<=', $today)
-                                ->whereRaw("EXTRACT(DOW FROM fecha_programada) = ?", [$today->dayOfWeek]);
-                        })
-                        ->orWhere(function ($q) use ($today) {
-                                $q->where('frecuencia', 'mensual')
-                                ->whereDate('fecha_programada', '<=', $today)
-                                ->whereRaw("EXTRACT(DAY FROM fecha_programada) = ?", [$today->day]);
-                        })
-                        ->orWhere(function ($q) use ($today) {
-                             $q->whereNull('frecuencia') // Fallback for old records without frequency
-                             ->whereDate('fecha_programada', '<=', $today);
-                        });
+                    ->whereHas('activity.executions', function ($query) {
+                        $query->whereDate('fecha_programada', now());
                     })
             )
-            ->heading('Reuniones de Comité Programadas para Hoy')
+            ->heading('Comités Programados para Hoy')
             ->columns([
                 Tables\Columns\TextColumn::make('program.nombre')
                     ->label('Programa')

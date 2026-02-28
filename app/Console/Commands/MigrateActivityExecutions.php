@@ -44,7 +44,7 @@ class MigrateActivityExecutions extends Command
                  ActivityExecution::create([
                     'activity_id' => $activity->id,
                     'fecha_programada' => $activity->fecha_inicio,
-                    'estado' => ($activity->estado === 'ejecutado' || $activity->ejecuciones_realizadas > 0) ? 'ejecutado' : 'pendiente',
+                    'estado' => ($activity->estado === 'ejecutado' || $activity->ejecuciones_realizadas > 0) ? 'ejecutado' : 'programado',
                     'fecha_ejecucion_real' => ($activity->estado === 'ejecutado' || $activity->ejecuciones_realizadas > 0) ? $activity->fecha_inicio : null,
                 ]);
                 continue;
@@ -90,7 +90,7 @@ class MigrateActivityExecutions extends Command
             $executedCount = $activity->ejecuciones_realizadas ?? 0;
             
             foreach ($dates as $index => $date) {
-                $status = 'pendiente';
+                $status = 'programado';
                 $realDate = null;
 
                 if ($index < $executedCount) {

@@ -7,11 +7,26 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Carbon\Carbon;
+use App\Models\ActivityExecution;
 
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Activity extends Model
 {
+    protected static function booted(): void
+    {
+        static::saved(function (Activity $activity) {
+            if ($activity->wasChanged(['fecha_inicio', 'frecuencia', 'veces_al_anio', 'fecha_fin'])) {
+                $activity->regenerateExecutions();
+            }
+        });
+        
+        static::created(function (Activity $activity) {
+            $activity->regenerateExecutions();
+        });
+    }
+
     protected $fillable = [
         'program_id',
         'location_id',
@@ -164,6 +179,68 @@ class Activity extends Model
     public function operationalControl(): HasOne
     {
         return $this->hasOne(OperationalControl::class);
+    }
+
+    public function regenerateExecutions(): void
+    {
+        if (!$this->fecha_inicio || !$this->frecuencia) {
+            return;
+        }
+
+        // Delete future/pending/failed executions
+        $this->executions()
+             ->whereIn('estado', [
+                 ActivityState::PROGRAMADO, 
+                 'pendiente', 
+                 ActivityState::NO_CUMPLIO, 
+                 'vencido'
+             ])
+             ->delete();
+
+        if ($this->frecuencia === 'eventual') {
+            if ($this->executions()->count() === 0) {
+                 $this->executions()->create([
+                    'fecha_programada' => $this->fecha_inicio,
+                    'estado' => ActivityState::PROGRAMADO,
+                    'responsable_id' => $this->responsable_id,
+                ]);
+            }
+            return;
+        }
+
+        $dates = [];
+        $current = Carbon::parse($this->fecha_inicio);
+        $veces = (int) ($this->veces_al_anio ?? 1);
+        
+        if ($veces > 366) $veces = 366;
+
+        for ($i = 0; $i < $veces; $i++) {
+            $dates[] = $current->copy();
+            
+            switch ($this->frecuencia) {
+                case 'diario': $current->addDay(); break;
+                case 'semanal': $current->addWeek(); break;
+                case 'mensual': $current->addMonth(); break;
+                case 'trimestral': $current->addMonths(3); break;
+                case 'semestral': $current->addMonths(6); break;
+                case 'anual': $current->addYear(); break;
+                default: $current->addMonth();
+            }
+        }
+
+        foreach ($dates as $date) {
+            $exists = $this->executions()
+                           ->whereDate('fecha_programada', $date)
+                           ->exists();
+
+            if (!$exists) {
+                $this->executions()->create([
+                    'fecha_programada' => $date,
+                    'estado' => ActivityState::PROGRAMADO,
+                    'responsable_id' => $this->responsable_id,
+                ]);
+            }
+        }
     }
 
     /**

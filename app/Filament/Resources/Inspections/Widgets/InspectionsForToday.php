@@ -31,50 +31,8 @@ class InspectionsForToday extends BaseWidget
             ->query(
                 Inspection::query()
                     ->whereIn('estado', ['programado', 'en_proceso'])
-                    ->where(function ($query) {
-                        $query->whereHas('activity', function ($q) {
-                            $today = now();
-                            $q->where(function ($sq) use ($today) {
-                                 $sq->whereIn('frecuencia', ['unico', 'eventual'])
-                                   ->whereDate('fecha_inicio', $today);
-                            });
-                            $q->orWhere(function ($sq) use ($today) {
-                                 $sq->where('frecuencia', 'diario')
-                                   ->whereDate('fecha_inicio', '<=', $today);
-                            });
-                            $q->orWhere(function ($sq) use ($today) {
-                                  $sq->where('frecuencia', 'semanal')
-                                    ->whereDate('fecha_inicio', '<=', $today)
-                                    ->whereRaw("EXTRACT(DOW FROM fecha_inicio) = ?", [$today->dayOfWeek]);
-                            });
-                            $q->orWhere(function ($sq) use ($today) {
-                                  $sq->where('frecuencia', 'mensual')
-                                    ->whereDate('fecha_inicio', '<=', $today)
-                                    ->whereRaw("EXTRACT(DAY FROM fecha_inicio) = ?", [$today->day]);
-                            });
-                            $q->orWhere(function ($sq) use ($today) {
-                                  $sq->where('frecuencia', 'trimestral')
-                                    ->whereDate('fecha_inicio', '<=', $today)
-                                    ->whereRaw("EXTRACT(DAY FROM fecha_inicio) = ?", [$today->day])
-                                    ->whereRaw("MOD((EXTRACT(YEAR FROM AGE(?, fecha_inicio)) * 12 + EXTRACT(MONTH FROM AGE(?, fecha_inicio))), 3) = 0", [$today, $today]);
-                            });
-                            $q->orWhere(function ($sq) use ($today) {
-                                  $sq->where('frecuencia', 'semestral')
-                                    ->whereDate('fecha_inicio', '<=', $today)
-                                    ->whereRaw("EXTRACT(DAY FROM fecha_inicio) = ?", [$today->day])
-                                    ->whereRaw("MOD((EXTRACT(YEAR FROM AGE(?, fecha_inicio)) * 12 + EXTRACT(MONTH FROM AGE(?, fecha_inicio))), 6) = 0", [$today, $today]);
-                            });
-                            $q->orWhere(function ($sq) use ($today) {
-                                  $sq->where('frecuencia', 'anual')
-                                    ->whereDate('fecha_inicio', '<=', $today)
-                                    ->whereRaw("EXTRACT(DAY FROM fecha_inicio) = ?", [$today->day])
-                                    ->whereRaw("EXTRACT(MONTH FROM fecha_inicio) = ?", [$today->month]);
-                            });
-                        })
-                        ->orWhere(function ($q) {
-                            $q->doesntHave('activity')
-                              ->whereDate('fecha_programada', now()->toDateString());
-                        });
+                    ->whereHas('activity.executions', function ($query) {
+                        $query->whereDate('fecha_programada', now());
                     })
             )
             ->heading('Inspecciones Programadas para Hoy')

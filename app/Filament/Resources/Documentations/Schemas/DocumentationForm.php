@@ -57,7 +57,7 @@ class DocumentationForm
                         ->default('1.0'),
 
                     DatePicker::make('fecha_programada')
-                        ->label('Fecha Programada')
+                        ->label('Fecha Inicial')
                         ->required()
                         ->live()
                         ->afterStateHydrated(function ($component, $state, $record) {

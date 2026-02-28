@@ -42,7 +42,7 @@ class OperationalControlForm
 
                 DatePicker::make('fecha_programada')
                     ->required()
-                    ->label('Fecha Programada')
+                    ->label('Fecha Inicial')
                     ->live(),
 
                 Select::make('frecuencia')

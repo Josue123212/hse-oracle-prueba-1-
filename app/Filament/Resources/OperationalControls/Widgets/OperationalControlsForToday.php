@@ -31,44 +31,8 @@ class OperationalControlsForToday extends BaseWidget
             ->query(
                 OperationalControl::query()
                     ->whereIn('estado', ['pendiente', 'en_proceso'])
-                    ->where(function ($query) {
-                        $today = now();
-                        $query->where(function ($q) use ($today) {
-                                $q->whereIn('frecuencia', ['unico', 'eventual'])
-                                ->whereDate('fecha_programada', $today);
-                        })
-                        ->orWhere(function ($q) use ($today) {
-                                $q->where('frecuencia', 'diario')
-                                ->whereDate('fecha_programada', '<=', $today);
-                        })
-                        ->orWhere(function ($q) use ($today) {
-                                $q->where('frecuencia', 'semanal')
-                                ->whereDate('fecha_programada', '<=', $today)
-                                ->whereRaw("EXTRACT(DOW FROM fecha_programada) = ?", [$today->dayOfWeek]);
-                        })
-                        ->orWhere(function ($q) use ($today) {
-                                $q->where('frecuencia', 'mensual')
-                                ->whereDate('fecha_programada', '<=', $today)
-                                ->whereRaw("EXTRACT(DAY FROM fecha_programada) = ?", [$today->day]);
-                        })
-                        ->orWhere(function ($q) use ($today) {
-                                $q->where('frecuencia', 'trimestral')
-                                ->whereDate('fecha_programada', '<=', $today)
-                                ->whereRaw("EXTRACT(DAY FROM fecha_programada) = ?", [$today->day])
-                                ->whereRaw("MOD((EXTRACT(YEAR FROM AGE(?, fecha_programada)) * 12 + EXTRACT(MONTH FROM AGE(?, fecha_programada))), 3) = 0", [$today, $today]);
-                        })
-                        ->orWhere(function ($q) use ($today) {
-                                $q->where('frecuencia', 'semestral')
-                                ->whereDate('fecha_programada', '<=', $today)
-                                ->whereRaw("EXTRACT(DAY FROM fecha_programada) = ?", [$today->day])
-                                ->whereRaw("MOD((EXTRACT(YEAR FROM AGE(?, fecha_programada)) * 12 + EXTRACT(MONTH FROM AGE(?, fecha_programada))), 6) = 0", [$today, $today]);
-                        })
-                        ->orWhere(function ($q) use ($today) {
-                                $q->where('frecuencia', 'anual')
-                                ->whereDate('fecha_programada', '<=', $today)
-                                ->whereRaw("EXTRACT(DAY FROM fecha_programada) = ?", [$today->day])
-                                ->whereRaw("EXTRACT(MONTH FROM fecha_programada) = ?", [$today->month]);
-                        });
+                    ->whereHas('activity.executions', function ($query) {
+                        $query->whereDate('fecha_programada', now());
                     })
             )
             ->heading('Controles Operacionales Pendientes para Hoy')

@@ -164,7 +164,7 @@ class ActivityForm
                     Grid::make(2)
                         ->schema([
                             DatePicker::make('fecha_inicio')
-                                ->label(fn (Get $get) => $get('frecuencia') === 'eventual' ? 'Fecha de Ejecución (Si ya ocurrió)' : 'Fecha Programada')
+                                ->label(fn (Get $get) => $get('frecuencia') === 'eventual' ? 'Fecha de Ejecución (Si ya ocurrió)' : 'Fecha Inicial')
                                 ->placeholder(fn (Get $get) => $get('frecuencia') === 'eventual' ? 'Seleccione la fecha de realización' : 'Seleccione la fecha de inicio')
                                 ->helperText(fn (Get $get) => $get('frecuencia') === 'eventual' ? 'Deje en blanco si aún no ha ocurrido.' : null)
                                 ->live(), // Actualiza el cronograma

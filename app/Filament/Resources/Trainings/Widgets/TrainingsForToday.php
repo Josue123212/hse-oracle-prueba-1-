@@ -27,8 +27,10 @@ class TrainingsForToday extends BaseWidget
         return $table
             ->query(
                 Training::query()
-                    ->whereDate('fecha_programada', now())
                     ->whereIn('estado', ['programado', 'en_proceso'])
+                    ->whereHas('activity.executions', function ($query) {
+                        $query->whereDate('fecha_programada', now());
+                    })
             )
             ->heading('Capacitaciones Programadas para Hoy')
             ->columns([
