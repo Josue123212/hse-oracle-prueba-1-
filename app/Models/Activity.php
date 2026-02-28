@@ -98,6 +98,11 @@ class Activity extends Model
         return $this->hasOne(Incident::class);
     }
 
+    public function executions(): HasMany
+    {
+        return $this->hasMany(ActivityExecution::class);
+    }
+
     public function committee(): HasOne
     {
         return $this->hasOne(Committee::class);
