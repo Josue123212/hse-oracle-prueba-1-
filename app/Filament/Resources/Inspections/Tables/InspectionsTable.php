@@ -3,11 +3,13 @@
 namespace App\Filament\Resources\Inspections\Tables;
 
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Storage;
+use App\Enums\ActivityState;
 
 class InspectionsTable
 {
@@ -15,53 +17,69 @@ class InspectionsTable
     {
         return $table
             ->columns([
-                \Filament\Tables\Columns\TextColumn::make('inspectionType.nombre')
-                    ->label('Tipo')
+                TextColumn::make('program.nombre')
+                    ->label('Programa')
+                    ->searchable()
+                    ->sortable()
+                    ->weight('bold'),
+
+                TextColumn::make('activity.nombre')
+                    ->label('Actividad')
                     ->searchable()
                     ->sortable(),
-                \Filament\Tables\Columns\TextColumn::make('activity.nombre')
-                    ->label('Actividad')
-                    ->searchable(),
-                \Filament\Tables\Columns\TextColumn::make('location.nombre')
-                    ->label('Sede')
-                    ->searchable(),
-                \Filament\Tables\Columns\TextColumn::make('fecha_programada')
-                    ->date()
+
+                TextColumn::make('activity.fecha_inicio')
+                    ->label('Fecha Inicio')
+                    ->date('d/m/Y')
                     ->sortable(),
-                \Filament\Tables\Columns\TextColumn::make('estado')
+
+                TextColumn::make('activity.scheduled_months')
+                    ->label('Meses Programados')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'pendiente' => 'gray',
-                        'conforme' => 'success',
-                        'no_conforme' => 'danger',
-                        'vencido' => 'warning',
-                    }),
-                \Filament\Tables\Columns\TextColumn::make('user.name')
-                    ->label('Inspector')
+                    ->color('info')
+                    ->separator(','),
+
+                TextColumn::make('responsable.name')
+                    ->label('Responsable')
                     ->searchable(),
-                \Filament\Tables\Columns\TextColumn::make('archivo')
-                    ->label('Documento')
-                    ->getStateUsing(fn ($record) => $record->archivo_detectado ? 'Ver' : '')
-                    ->url(fn ($record) => $record->archivo_detectado ? Storage::url("inspecciones/{$record->anio}/" . str_pad((string) $record->mes, 2, '0', STR_PAD_LEFT) . "/inspeccion-{$record->id}.pdf") : null)
-                    ->openUrlInNewTab(),
-                \Filament\Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('activity.fecha_proxima')
+                    ->label('Fecha Ejecución')
+                    ->date('d/m/Y'),
+
+                TextColumn::make('estado')
+                    ->badge()
+                    ->sortable(),
+
+                TextColumn::make('progreso')
+                    ->label('Progreso')
+                    ->state(function ($record): string {
+                        if ($record->activity) {
+                            return "{$record->activity->ejecuciones_realizadas} / {$record->activity->veces_al_anio}";
+                        }
+                        return "N/A";
+                    })
+                    ->badge()
+                    ->color('info'),
+
+                TextColumn::make('resultado')
+                    ->badge()
+                    ->color(fn (?string $state): string => match ($state) {
+                        'aprobado' => 'success',
+                        'rechazado' => 'danger',
+                        'pendiente' => 'warning',
+                        default => 'gray',
+                    }),
             ])
             ->filters([
                 //
             ])
-            ->recordActions([
+            ->actions([
                 ViewAction::make(),
                 EditAction::make(),
-                \Filament\Actions\Action::make('pdf')
-                    ->label('PDF')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->url(fn ($record) => route('inspections.pdf', $record))
-                    ->openUrlInNewTab(),
+                DeleteAction::make(),
             ])
-            ->toolbarActions([
+            ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),

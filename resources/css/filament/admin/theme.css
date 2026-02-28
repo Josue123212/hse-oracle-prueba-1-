@@ -25,7 +25,7 @@
 }
 
 .fi-sidebar-header-ctn {
-    padding-top: 2rem;
+    padding-top: 1rem;
 }
 
 .qa-grid {
@@ -66,28 +66,46 @@
     font-weight: 500;
 }
 
-.hse-sidebar-brand{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:0.4rem;
-    padding:1.5rem 0.75rem 1rem;
-    border-top:1px solid rgba(15,23,42,0.06);
-    margin-top:0;
+/* Reset Filament Logo Container Styles to allow custom vertical layout */
+.fi-sidebar-header {
+    height: auto !important;
+    min-height: 4rem;
+    padding-bottom: 0.5rem;
 }
-.hse-sidebar-brand__logo{
-    height:4.5rem;
-    width:auto;
-    object-fit:contain;
-    opacity:0.98;
+
+.fi-sidebar-header .fi-logo {
+    height: auto !important;
+    width: 100%;
+    display: flex;
+    justify-content: center;
 }
-.hse-sidebar-brand__text{
-    font-size:0.75rem;
-    color:rgba(15,23,42,0.6);
+
+.hse-sidebar-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    width: 100%;
 }
-.hse-sidebar-brand__link{
-    font-size:0.75rem;
-    color:#2563eb;
-    text-decoration:none;
+
+.hse-sidebar-brand__logo {
+    height: 4rem;
+    width: auto;
+    object-fit: contain;
+}
+
+.hse-sidebar-brand__text {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #334155; /* Slate-700 */
+    text-align: center;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.hse-sidebar-brand__link {
+    display: none;
 }
 

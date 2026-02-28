@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\Programs\Schemas;
 
 use Filament\Forms\Components\DatePicker;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -12,39 +14,51 @@ class ProgramForm
 {
     public static function configure(Schema $schema): Schema
     {
-        return $schema->components([
-            TextInput::make('codigo')
-                ->label('Código del Programa')
-                ->required()
-                ->unique(ignoreRecord: true),
-            
-            TextInput::make('version')
-                ->label('Versión')
-                ->required()
-                ->maxLength(10),
+        return $schema
+            ->components([
+                Section::make('Información del Programa')
+                    ->schema([
+                        Grid::make(2)
+                            ->schema([
+                                TextInput::make('nombre')
+                                    ->required()
+                                    ->maxLength(150)
+                                    ->label('Nombre del Programa'),
 
-            Textarea::make('obj_general')
-                ->label('Objetivo General')
-                ->rows(3),
+                                Select::make('parent_id')
+                                    ->relationship('parent', 'nombre')
+                                    ->label('Programa Padre (Opcional)')
+                                    ->searchable()
+                                    ->preload()
+                                    ->placeholder('Seleccione si este es un sub-programa'),
 
-            TextInput::make('autor')
-                ->label('Autor / Elaborado por')
-                ->maxLength(150),
+                                Select::make('anio')
+                                    ->label('Año')
+                                    ->options(array_combine(range(date('Y'), date('Y') + 5), range(date('Y'), date('Y') + 5)))
+                                    ->default(date('Y'))
+                                    ->required(),
 
-            Select::make('supervisor_id')
-                ->label('Supervisor Responsable')
-                ->relationship('supervisor', 'nombre') 
-                ->searchable()
-                ->preload(),
-
-            DatePicker::make('fecha_emision')
-                ->label('Fecha de Emisión'),
-            
-            DatePicker::make('fecha_edicion')
-                ->label('Fecha de Edición'),
-
-            DatePicker::make('fecha_revision')
-                ->label('Fecha de Revisión'),
-        ]);
+                                Select::make('estado')
+                                    ->options([
+                                        'borrador' => 'Borrador',
+                                        'aprobado' => 'Aprobado',
+                                        'cerrado' => 'Cerrado',
+                                    ])
+                                    ->default('borrador')
+                                    ->required(),
+                                
+                                Select::make('supervisor_id')
+                                    ->relationship('supervisor', 'nombre')
+                                    ->label('Supervisor Responsable')
+                                    ->searchable()
+                                    ->preload(),
+                            ]),
+                        
+                        Textarea::make('descripcion')
+                            ->label('Descripción / Objetivos')
+                            ->rows(3)
+                            ->columnSpanFull(),
+                    ]),
+            ]);
     }
 }

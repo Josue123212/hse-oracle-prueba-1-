@@ -48,8 +48,6 @@ class NotificationResource extends Resource
     {
         return [
             'index' => ListNotifications::route('/'),
-            'create' => CreateNotification::route('/create'),
-            'edit' => EditNotification::route('/{record}/edit'),
         ];
     }
 }

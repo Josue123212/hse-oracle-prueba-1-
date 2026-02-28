@@ -19,15 +19,24 @@ use Filament\Tables\Table;
 use App\Filament\Resources\Programs\RelationManagers\ElementsRelationManager;
 use Illuminate\Database\Eloquent\Model;
 
+use App\Filament\Resources\Programs\Widgets\ProgramStatsOverview;
+
 class ProgramResource extends Resource
 {
     protected static ?string $model = Program::class;
 
-    protected static string|BackedEnum|null $navigationIcon = null;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static ?string $recordTitleAttribute = 'codigo';
+    protected static ?string $recordTitleAttribute = 'nombre';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Gestión de Elementos';
+    protected static string|UnitEnum|null $navigationGroup = 'Gestión de Programas';
+
+    public static function getWidgets(): array
+    {
+        return [
+            ProgramStatsOverview::class,
+        ];
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -47,7 +56,7 @@ class ProgramResource extends Resource
     public static function getRelations(): array
     {
         return [
-            ElementsRelationManager::class,
+            //
         ];
     }
 
@@ -55,26 +64,21 @@ class ProgramResource extends Resource
     {
         return [
             'index' => ListPrograms::route('/'),
-            'create' => CreateProgram::route('/create'),
-            'view' => ViewProgram::route('/{record}'),
-            'edit' => EditProgram::route('/{record}/edit'),
         ];
     }
 
     public static function getGloballySearchableAttributes(): array
     {
         return [
-            'codigo',
-            'autor',
-            'version',
+            'nombre',
         ];
     }
 
     public static function getGlobalSearchResultDetails(Model $record): array
     {
         return [
-            'Autor' => $record->autor ?? '',
-            'Versión' => $record->version ?? '',
+            'Año' => $record->anio ?? '',
+            'Estado' => ucfirst($record->estado) ?? '',
         ];
     }
 }

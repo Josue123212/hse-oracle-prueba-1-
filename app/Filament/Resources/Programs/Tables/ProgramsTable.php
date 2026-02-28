@@ -3,12 +3,13 @@
 namespace App\Filament\Resources\Programs\Tables;
 
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
-use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Actions\Action;
+use Filament\Tables\Table;
+use Filament\Tables\Filters\SelectFilter;
 
 class ProgramsTable
 {
@@ -16,41 +17,52 @@ class ProgramsTable
     {
         return $table
             ->columns([
-                TextColumn::make('codigo')
-                    ->label('Código')
+                TextColumn::make('nombre')
+                    ->label('Programa')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->weight('bold'),
+
+                TextColumn::make('parent.nombre')
+                    ->label('Pertenece a')
+                    ->placeholder('Principal')
+                    ->sortable()
+                    ->badge()
+                    ->color('info'),
                 
-                TextColumn::make('version')
-                    ->label('Versión')
+                TextColumn::make('anio')
+                    ->label('Año')
                     ->sortable(),
 
-                TextColumn::make('autor')
-                    ->label('Autor')
-                    ->searchable(),
-
+                TextColumn::make('estado')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'borrador' => 'gray',
+                        'aprobado' => 'success',
+                        'cerrado' => 'danger',
+                        default => 'gray',
+                    }),
+                
                 TextColumn::make('supervisor.nombre')
-                    ->label('Supervisor Responsable')
+                    ->label('Supervisor')
                     ->sortable(),
 
-                TextColumn::make('fecha_emision')
-                    ->label('F. Emisión')
-                    ->date('d/m/Y')
-                    ->sortable(),
+                TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                SelectFilter::make('parent_id')
+                    ->label('Filtrar por Programa Padre')
+                    ->relationship('parent', 'nombre'),
             ])
             ->actions([
                 ViewAction::make(),
                 EditAction::make(),
-                Action::make('pdf')
-                    ->label('PDF')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->url(fn ($record) => route('programs.pdf', $record))
-                    ->openUrlInNewTab(),
+                DeleteAction::make(),
             ])
-            ->toolbarActions([
+            ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),

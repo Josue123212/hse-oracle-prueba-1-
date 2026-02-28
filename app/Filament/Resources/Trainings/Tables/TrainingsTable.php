@@ -3,12 +3,13 @@
 namespace App\Filament\Resources\Trainings\Tables;
 
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
-use Filament\Tables\Table;
-
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use App\Enums\ActivityState;
 
 class TrainingsTable
 {
@@ -16,35 +17,48 @@ class TrainingsTable
     {
         return $table
             ->columns([
-                TextColumn::make('titulo')
-                    ->label('Título')
+                TextColumn::make('tema')
+                    ->label('Tema')
                     ->searchable()
+                    ->sortable()
+                    ->weight('bold'),
+
+                TextColumn::make('program.nombre')
+                    ->label('Programa')
+                    ->searchable()
+                    ->badge(),
+
+                TextColumn::make('activity.fecha_inicio')
+                    ->label('Fecha Inicio')
+                    ->date('d/m/Y')
                     ->sortable(),
+
+                TextColumn::make('activity.scheduled_months')
+                    ->label('Meses Programados')
+                    ->badge()
+                    ->color('info')
+                    ->separator(','),
+
+                TextColumn::make('responsable.name')
+                    ->label('Responsable'),
+
+                TextColumn::make('activity.fecha_proxima')
+                    ->label('Fecha Ejecución')
+                    ->date('d/m/Y'),
 
                 TextColumn::make('estado')
                     ->badge()
-                    ->colors([
-                        'secondary' => 'borrador',
-                        'success' => 'publicado',
-                    ]),
-
-                TextColumn::make('nota_minima')
-                    ->label('Nota mínima')
-                    ->sortable(),
-
-                TextColumn::make('created_at')
-                    ->label('Creado')
-                    ->dateTime()
                     ->sortable(),
             ])
             ->filters([
                 //
             ])
-            ->recordActions([
+            ->actions([
                 ViewAction::make(),
                 EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->toolbarActions([
+            ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),

@@ -10,17 +10,16 @@ return new class extends Migration
     {
         Schema::create('audits', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('activity_id')
-                ->constrained('activities')
+            $table->foreignId('program_id')
+                ->constrained('programs')
                 ->onDelete('cascade');
             $table->string('nombre', 255);
             $table->text('descripcion')->nullable();
-            $table->enum('tipo', ['interna', 'externa', 'verificacion'])->default('interna');
-            $table->integer('mes')->nullable(); // 1-12
-            $table->integer('anio')->nullable();
-            $table->date('fecha')->nullable();
-            $table->enum('estado', ['programado', 'ejecutado', 'no_ejecutado', 'parcial'])->default('programado');
-            $table->text('observaciones')->nullable();
+            $table->date('fecha_programada');
+            $table->date('fecha_ejecucion')->nullable();
+            $table->enum('estado', ['programado', 'ejecutado', 'vencido', 'reprogramado'])->default('programado');
+            $table->text('hallazgos')->nullable();
+            $table->foreignId('auditor_id')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
         });
     }

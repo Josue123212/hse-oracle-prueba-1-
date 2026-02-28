@@ -6,9 +6,10 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Actions\DeleteAction;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Actions\DeleteAction;
+use App\Enums\ActivityState;
 
 class AuditsTable
 {
@@ -16,42 +17,48 @@ class AuditsTable
     {
         return $table
             ->columns([
-                TextColumn::make('activity.nombre')
-                    ->label('Actividad')
-                    ->searchable(),
-                TextColumn::make('nombre')
-                    ->label('Nombre')
+                TextColumn::make('program.nombre')
+                    ->label('Programa')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('tipo')
-                    ->label('Tipo')
+                
+                TextColumn::make('activity.fecha_inicio')
+                    ->label('Fecha Inicio')
+                    ->date('d/m/Y')
+                    ->sortable(),
+
+                TextColumn::make('activity.scheduled_months')
+                    ->label('Meses Programados')
                     ->badge()
-                    ->colors([
-                        'primary' => 'interna',
-                        'warning' => 'externa',
-                        'info' => 'verificacion',
-                    ])
+                    ->color('info')
+                    ->separator(','),
+
+                TextColumn::make('nombre')
+                    ->label('Auditoría')
+                    ->searchable()
+                    ->sortable()
+                    ->weight('bold'),
+                TextColumn::make('auditor.name')
+                    ->label('Auditor')
+                    ->searchable()
                     ->sortable(),
-                TextColumn::make('mes')
-                    ->label('Mes')
-                    ->sortable(),
-                TextColumn::make('anio')
-                    ->label('Año')
-                    ->sortable(),
-                TextColumn::make('fecha')
-                    ->label('Fecha')
-                    ->date()
-                    ->sortable(),
+                TextColumn::make('activity.fecha_proxima')
+                    ->label('Fecha Ejecución')
+                    ->date('d/m/Y'),
                 TextColumn::make('estado')
                     ->label('Estado')
                     ->badge()
-                    ->colors([
-                        'warning' => 'programado',
-                        'success' => 'ejecutado',
-                        'danger' => 'no_ejecutado',
-                        'info' => 'parcial',
-                    ])
                     ->sortable(),
+                TextColumn::make('progreso')
+                    ->label('Progreso')
+                    ->state(function ($record): string {
+                        if ($record->activity) {
+                            return "{$record->activity->ejecuciones_realizadas} / {$record->activity->veces_al_anio}";
+                        }
+                        return "N/A";
+                    })
+                    ->badge()
+                    ->color('info'),
                 TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime()
@@ -61,12 +68,12 @@ class AuditsTable
             ->filters([
                 //
             ])
-            ->recordActions([
+            ->actions([
                 ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
             ])
-            ->toolbarActions([
+            ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),

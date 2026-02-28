@@ -10,26 +10,16 @@ return new class extends Migration
     {
         Schema::create('inspections', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('inspection_type_id')
-                ->constrained('inspection_types')
-                ->onDelete('restrict');
-            $table->foreignId('activity_id')
-                ->nullable()
-                ->constrained('activities')
-                ->onDelete('set null');
-            $table->foreignId('location_id')
-                ->constrained('locations')
-                ->onDelete('restrict');
-            $table->foreignId('user_id')
-                ->nullable()
-                ->constrained('users')
-                ->onDelete('set null');
-            $table->integer('mes'); // 1-12
-            $table->integer('anio');
+            $table->foreignId('program_id')
+                ->constrained('programs')
+                ->onDelete('cascade');
+            $table->string('nombre', 255);
+            $table->text('descripcion')->nullable();
             $table->date('fecha_programada');
-            $table->date('fecha_ejecutada')->nullable();
-            $table->enum('estado', ['pendiente', 'conforme', 'no_conforme', 'vencido'])->default('pendiente');
-            $table->boolean('archivo_detectado')->default(false);
+            $table->date('fecha_ejecucion')->nullable();
+            $table->enum('estado', ['programado', 'ejecutado', 'vencido', 'reprogramado'])->default('programado');
+            $table->foreignId('responsable_id')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('location_id')->nullable()->constrained('locations')->onDelete('set null');
             $table->text('observaciones')->nullable();
             $table->timestamps();
         });

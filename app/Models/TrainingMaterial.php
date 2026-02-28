@@ -11,6 +11,7 @@ class TrainingMaterial extends Model
         'training_id',
         'nombre',
         'url_material',
+        'archivo',
     ];
 
     public function training(): BelongsTo

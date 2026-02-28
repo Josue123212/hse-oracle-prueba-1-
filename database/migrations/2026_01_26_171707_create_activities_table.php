@@ -10,21 +10,14 @@ return new class extends Migration
     {
         Schema::create('activities', function (Blueprint $table) {
             $table->id();
-            $table->string('codigo', 20)->unique(); // "1.1", "A.1", "3.5"
+            $table->foreignId('program_id')->constrained('programs')->onDelete('cascade');
             $table->string('nombre', 255);
             $table->text('descripcion')->nullable();
-            $table->enum('frecuencia', ['diario', 'semanal', 'mensual', 'trimestral', 'anual', 'cuando_requiera']);
-            $table->decimal('meta', 5, 2)->default(100.00);
-            $table->decimal('cumplimiento', 5, 2)->default(0.00);
+            $table->enum('frecuencia', ['diario', 'semanal', 'mensual', 'trimestral', 'semestral', 'anual', 'unico'])->default('unico');
+            $table->integer('meta')->default(100)->comment('Meta numérica o porcentual');
+            $table->string('unidad_medida', 50)->default('%');
             $table->boolean('es_obligatoria')->default(true);
-            $table->foreignId('location_id')
-                ->constrained('locations')
-                ->onDelete('restrict');
-            $table->foreignId('user_id')
-                ->nullable()
-                ->constrained('users')
-                ->onDelete('set null');
-            $table->text('observacion')->nullable();
+            $table->foreignId('responsable_id')->nullable()->constrained('users')->onDelete('set null'); // Quien debe ejecutarla
             $table->timestamps();
         });
     }

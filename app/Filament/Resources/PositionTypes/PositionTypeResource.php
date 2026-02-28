@@ -53,9 +53,6 @@ class PositionTypeResource extends Resource
     {
         return [
             'index' => ListPositionTypes::route('/'),
-            'create' => CreatePositionType::route('/create'),
-            'view' => ViewPositionType::route('/{record}'),
-            'edit' => EditPositionType::route('/{record}/edit'),
         ];
     }
 }

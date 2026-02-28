@@ -9,25 +9,77 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Program extends Model
 {
     protected $fillable = [
-        'codigo',
-        'version',
-        'obj_general',
-        'autor',
-        'fecha_emision',
-        'fecha_edicion',
-        'fecha_revision',
-        'supervisor_id'
+        'nombre',
+        'descripcion',
+        'anio',
+        'estado',
+        'supervisor_id',
+        'parent_id', // Add parent_id to fillable
     ];
 
-    // Relación con los elementos centralizados
-    public function elements(): HasMany
+    public function activities(): HasMany
     {
-        return $this->hasMany(Element::class);
+        return $this->hasMany(Activity::class);
     }
 
-    // Relación con la tabla de supervisores según tu migración
     public function supervisor(): BelongsTo
     {
         return $this->belongsTo(Supervisor::class);
+    }
+
+    // Self-referencing relationships
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Program::class, 'parent_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(Program::class, 'parent_id');
+    }
+
+    public function committees(): HasMany
+    {
+        return $this->hasMany(Committee::class);
+    }
+
+    public function documentations(): HasMany
+    {
+        return $this->hasMany(Documentation::class);
+    }
+
+    public function drills(): HasMany
+    {
+        return $this->hasMany(Drill::class);
+    }
+
+    public function incidents(): HasMany
+    {
+        return $this->hasMany(Incident::class);
+    }
+
+    public function operationalControls(): HasMany
+    {
+        return $this->hasMany(OperationalControl::class);
+    }
+
+    public function promotions(): HasMany
+    {
+        return $this->hasMany(Promotion::class);
+    }
+
+    public function trainings(): HasMany
+    {
+        return $this->hasMany(Training::class);
+    }
+
+    public function inspections(): HasMany
+    {
+        return $this->hasMany(Inspection::class);
+    }
+
+    public function audits(): HasMany
+    {
+        return $this->hasMany(Audit::class);
     }
 }

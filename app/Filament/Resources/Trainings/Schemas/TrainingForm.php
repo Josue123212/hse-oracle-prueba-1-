@@ -3,11 +3,20 @@
 namespace App\Filament\Resources\Trainings\Schemas;
 
 use Filament\Schemas\Schema;
-
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
+use Illuminate\Support\HtmlString;
+use Carbon\Carbon;
+use Filament\Schemas\Components\Utilities\Get;
+use App\Enums\ActivityState;
 
 class TrainingForm
 {
@@ -15,44 +24,209 @@ class TrainingForm
     {
         return $schema
             ->schema([
-                TextInput::make('titulo')
-                    ->label('Título')
-                    ->required()
-                    ->maxLength(255),
+                Section::make('Programación de la Capacitación')
+                    ->schema([
+                        Grid::make(2)
+                            ->schema([
+                                TextInput::make('tema')
+                                    ->label('Tema / Título')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->columnSpan(2),
 
-                Textarea::make('descripcion')
-                    ->label('Descripción')
-                    ->rows(4),
+                                Select::make('program_id')
+                                    ->label('Programa Asociado')
+                                    ->relationship('program', 'nombre')
+                                    ->searchable()
+                                    ->preload()
+                                    ->required(),
+                                
+                                Select::make('responsable_id')
+                                    ->label('Responsable')
+                                    ->relationship('responsable', 'name')
+                                    ->searchable()
+                                    ->preload(),
 
-                TextInput::make('url_video')
-                    ->label('URL del video')
-                    ->url(),
+                                DatePicker::make('fecha_programada')
+                                    ->label('Fecha Programada')
+                                    ->required()
+                                    ->live(),
+                                
+                                Select::make('frecuencia')
+                                    ->label('Frecuencia')
+                                    ->formatStateUsing(function ($state, $record) {
+                                        if (empty($state) && $record?->activity) {
+                                            return $record->activity->frecuencia;
+                                        }
+                                        return $state;
+                                    })
+                                    ->options([
+                                        'diario' => 'Diario',
+                                        'semanal' => 'Semanal',
+                                        'mensual' => 'Mensual',
+                                        'trimestral' => 'Trimestral',
+                                        'semestral' => 'Semestral',
+                                        'anual' => 'Anual',
+                                        'eventual' => 'Eventualmente',
+                                    ])
+                                    ->live()
+                                    ->afterStateUpdated(function ($set, ?string $state) {
+                                        $map = [
+                                            'diario' => 365,
+                                            'semanal' => 52,
+                                            'mensual' => 12,
+                                            'trimestral' => 4,
+                                            'semestral' => 2,
+                                            'anual' => 1,
+                                            'eventual' => 1,
+                                        ];
+                                        $set('veces_al_anio', $map[$state] ?? 1);
+                                        $set('ejecuciones_realizadas', 0);
+                                    }),
 
-                TextInput::make('nota_minima')
-                    ->label('Nota mínima')
-                    ->numeric()
-                    ->default(70)
-                    ->required(),
+                                TextInput::make('veces_al_anio')
+                                    ->label('Veces al Año')
+                                    ->numeric()
+                                    ->readOnly()
+                                    ->default(1)
+                                    ->hidden(),
 
-                Select::make('estado')
-                    ->label('Estado')
-                    ->options([
-                        'borrador' => 'Borrador',
-                        'publicado' => 'Publicado',
-                        'finalizada' => 'Finalizada',
-                    ])
-                    ->default('borrador')
-                    ->required(),
+                                TextInput::make('ejecuciones_realizadas')
+                                    ->label('Ejecuciones Realizadas')
+                                    ->numeric()
+                                    ->readOnly()
+                                    ->default(0)
+                                    ->hidden(),
+                                
+                                TimePicker::make('hora_inicio')
+                                    ->label('Hora Programada'),
 
-                DatePicker::make('fecha_inicio')
-                    ->label('Fecha de inicio'),
+                                TextInput::make('detalle_frecuencia')
+                                    ->label('Detalle de Eventualidad')
+                                    ->placeholder('Especifique la razón (ej. Cuando ocurra, Personal nuevo)')
+                                    ->required(fn (Get $get) => $get('frecuencia') === 'eventual')
+                                    ->visible(fn (Get $get) => $get('frecuencia') === 'eventual')
+                                    ->columnSpanFull(),
 
-                DatePicker::make('fecha_fin')
-                    ->label('Fecha de fin'),
+                                Placeholder::make('fechas_programadas_visual')
+                                    ->label('Fechas del año')
+                                    ->content(function (Get $get) {
+                                        $fechaInicio = $get('fecha_programada');
+                                        $frecuencia = $get('frecuencia');
+                                        $vecesAlAnio = (int) $get('veces_al_anio');
 
-                TextInput::make('duracion_horas')
-                    ->label('Duración (horas)')
-                    ->numeric(),
+                                        if (!$fechaInicio || !$frecuencia) {
+                                            return new HtmlString('<span class="text-gray-500 italic">Seleccione fecha programada y frecuencia para ver el cronograma.</span>');
+                                        }
+
+                                        if ($frecuencia === 'eventual' || $vecesAlAnio === 0) {
+                            $detalle = $get('detalle_frecuencia') ? ': ' . htmlspecialchars($get('detalle_frecuencia')) : '';
+                            if ($fechaInicio) {
+                                try {
+                                    $date = Carbon::parse($fechaInicio)->format('d/m/Y');
+                                    return new HtmlString('<span class="text-gray-500 italic">Eventualmente' . $detalle . ' - <strong>Ejecutada el: ' . $date . '</strong></span>');
+                                } catch (\Exception $e) {}
+                            }
+                            return new HtmlString('<span class="text-gray-500 italic">Eventualmente' . $detalle . '</span>');
+                        }
+
+                        try {
+                            $date = Carbon::parse($fechaInicio);
+                        } catch (\Exception $e) {
+                            return 'Fecha inválida';
+                        }
+
+                        $fechas = [];
+                        $limit = match($frecuencia) {
+                            'diario' => 10,
+                            'semanal' => 12,
+                            'mensual' => 12,
+                            'trimestral' => 4,
+                            'semestral' => 2,
+                            'anual' => 1,
+                            'eventual' => 1,
+                            default => 1
+                        };
+
+                        for ($i = 0; $i < $limit; $i++) {
+                            $fechas[] = $date->format('d/m/Y');
+                            match($frecuencia) {
+                                'diario' => $date->addDay(),
+                                'semanal' => $date->addWeek(),
+                                'mensual' => $date->addMonth(),
+                                'trimestral' => $date->addMonths(3),
+                                'semestral' => $date->addMonths(6),
+                                'anual' => $date->addYear(),
+                                default => null,
+                            };
+                        }
+
+                        $html = '<div class="grid grid-cols-2 md:grid-cols-4 gap-2">';
+                        foreach ($fechas as $f) {
+                            $html .= "<div class='bg-gray-100 dark:bg-gray-800 p-2 rounded text-center text-sm'>{$f}</div>";
+                        }
+                        if ($frecuencia === 'diario' && $limit === 10) {
+                            $html .= "<div class='bg-gray-100 dark:bg-gray-800 p-2 rounded text-center text-sm'>...</div>";
+                        }
+                        $html .= '</div>';
+
+                        return new HtmlString($html);
+                                    })
+                                    ->columnSpanFull(),
+                            ]),
+                    ]),
+
+                Section::make('Ejecución')
+                    ->schema([
+                        Grid::make(2)
+                            ->schema([
+                                Select::make('estado')
+                                    ->label('Estado')
+                                    ->options(ActivityState::class)
+                                    ->default(ActivityState::PROGRAMADO->value)
+                                    ->required()
+                                    ->live(),
+
+                                Select::make('resultado')
+                                    ->label('Resultado')
+                                    ->options([
+                                        'aprobado' => 'Aprobado',
+                                        'reprobado' => 'Reprobado',
+                                        'pendiente' => 'Pendiente',
+                                    ])
+                                    ->visible(fn (Get $get) => $get('estado') === ActivityState::EJECUTADO->value),
+                                
+                                TextInput::make('duracion_horas')
+                                    ->label('Duración (horas)')
+                                    ->numeric(),
+                            ]),
+                        
+                        Textarea::make('descripcion')
+                            ->label('Observaciones / Comentarios')
+                            ->rows(3)
+                            ->columnSpanFull(),
+                    ]),
+
+                Section::make('Materiales y Recursos')
+                    ->schema([
+                        Repeater::make('materials')
+                            ->label('Materiales de Apoyo')
+                            ->relationship('materials')
+                            ->schema([
+                                TextInput::make('nombre')
+                                    ->required()
+                                    ->maxLength(255),
+                                TextInput::make('url_material')
+                                    ->label('URL Externa (Video/Docs)')
+                                    ->url(),
+                                FileUpload::make('archivo')
+                                    ->label('Archivo Adjunto')
+                                    ->directory('training-materials')
+                                    ->visibility('private'),
+                            ])
+                            ->columns(2)
+                            ->defaultItems(0),
+                    ]),
             ]);
     }
 }

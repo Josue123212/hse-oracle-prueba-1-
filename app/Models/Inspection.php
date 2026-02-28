@@ -2,28 +2,61 @@
 
 namespace App\Models;
 
+use App\Enums\ActivityState;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Traits\DeletesLinkedActivity;
 
 class Inspection extends Model
 {
+    use DeletesLinkedActivity;
+
     protected $fillable = [
-        'inspection_type_id',
+        'program_id',
         'activity_id',
-        'location_id',
-        'user_id',
-        'mes',
-        'anio',
+        'nombre',
+        'descripcion',
         'fecha_programada',
-        'fecha_ejecutada',
         'estado',
+        'resultado',
+        'responsable_id',
+        'location_id',
         'observaciones',
-        'archivo_detectado'
+        'lugar',
+        'tipo_inspeccion',
+        'frecuencia',
+        'veces_al_anio',
+        'ejecuciones_realizadas',
+        'detalle_frecuencia',
+        'proxima_ejecucion',
     ];
 
-    public function inspectionType(): BelongsTo
+    protected $casts = [
+        'fecha_programada' => 'date',
+        'proxima_ejecucion' => 'date',
+        'estado' => ActivityState::class,
+    ];
+
+    protected static function booted()
     {
-        return $this->belongsTo(InspectionType::class);
+        static::saved(function ($model) {
+            if ($model->activity) {
+                $updates = [];
+                if ($model->isDirty('fecha_programada')) $updates['fecha_inicio'] = $model->fecha_programada;
+                if ($model->isDirty(['frecuencia', 'veces_al_anio', 'ejecuciones_realizadas', 'detalle_frecuencia'])) {
+                    $updates['frecuencia'] = $model->frecuencia;
+                    $updates['veces_al_anio'] = $model->veces_al_anio;
+                    $updates['ejecuciones_realizadas'] = $model->ejecuciones_realizadas;
+                    $updates['detalle_frecuencia'] = $model->detalle_frecuencia;
+                }
+                if (!empty($updates)) $model->activity->update($updates);
+            }
+        });
+    }
+
+    public function program(): BelongsTo
+    {
+        return $this->belongsTo(Program::class);
     }
 
     public function activity(): BelongsTo
@@ -31,13 +64,13 @@ class Inspection extends Model
         return $this->belongsTo(Activity::class);
     }
 
+    public function responsable(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'responsable_id');
+    }
+
     public function location(): BelongsTo
     {
         return $this->belongsTo(Location::class);
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
     }
 }

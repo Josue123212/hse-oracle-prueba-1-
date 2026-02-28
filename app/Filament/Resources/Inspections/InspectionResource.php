@@ -18,15 +18,24 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
+use App\Filament\Resources\Inspections\Widgets\InspectionStatsOverview;
+
 class InspectionResource extends Resource
 {
     protected static ?string $model = Inspection::class;
 
-    protected static string|BackedEnum|null $navigationIcon = null;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
-    protected static ?string $recordTitleAttribute = 'mes';
+    protected static string|UnitEnum|null $navigationGroup = 'Operaciones y Control';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Evaluaciones y Auditorías';
+    protected static ?string $recordTitleAttribute = 'nombre';
+
+    public static function getWidgets(): array
+    {
+        return [
+            InspectionStatsOverview::class,
+        ];
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -54,19 +63,16 @@ class InspectionResource extends Resource
     {
         return [
             'index' => ListInspections::route('/'),
-            'create' => CreateInspection::route('/create'),
-            'view' => ViewInspection::route('/{record}'),
-            'edit' => EditInspection::route('/{record}/edit'),
         ];
     }
 
-     public static function getGloballySearchableAttributes(): array
+    public static function getGloballySearchableAttributes(): array
     {
         return [
-            'inspectionType.nombre',
+            'nombre',
             'activity.nombre',
             'location.nombre',
-            'user.name',
+            'responsable.name',
             'estado',
             'observaciones',
         ];
@@ -75,11 +81,10 @@ class InspectionResource extends Resource
     public static function getGlobalSearchResultDetails(Model $record): array
     {
         return [
-            'Tipo' => $record->inspectionType->nombre ?? '',
             'Actividad' => $record->activity->nombre ?? '',
             'Sede' => $record->location->nombre ?? '',
-            'Inspector' => $record->user->name ?? '',
-            'Estado' => $record->estado ?? '',
+            'Inspector' => $record->responsable->name ?? '',
+            'Estado' => ucfirst($record->estado) ?? '',
         ];
     }
 }

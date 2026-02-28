@@ -10,13 +10,10 @@ return new class extends Migration
     {
         Schema::create('programs', function (Blueprint $table) {
             $table->id();
-            $table->string('codigo', 50)->unique();
-            $table->string('version', 10);
-            $table->text('obj_general')->nullable();
-            $table->string('autor', 150)->nullable();
-            $table->date('fecha_emision')->nullable();
-            $table->date('fecha_edicion')->nullable();
-            $table->date('fecha_revision')->nullable();
+            $table->string('nombre', 150); // Liderazgo y Compromiso, etc.
+            $table->text('descripcion')->nullable();
+            $table->integer('anio')->default(date('Y'));
+            $table->enum('estado', ['borrador', 'aprobado', 'cerrado'])->default('borrador');
             $table->foreignId('supervisor_id')
                 ->nullable()
                 ->constrained('supervisors')

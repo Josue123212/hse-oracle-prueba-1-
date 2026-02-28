@@ -14,7 +14,8 @@ return new class extends Migration
                 ->constrained('trainings')
                 ->onDelete('cascade');
             $table->string('nombre', 255);
-            $table->string('url_material', 500);
+            $table->string('url_material', 500)->nullable();
+            $table->string('archivo', 500)->nullable();
             $table->timestamps();
         });
     }

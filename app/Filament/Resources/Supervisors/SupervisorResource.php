@@ -53,9 +53,6 @@ class SupervisorResource extends Resource
     {
         return [
             'index' => ListSupervisors::route('/'),
-            'create' => CreateSupervisor::route('/create'),
-            'view' => ViewSupervisor::route('/{record}'),
-            'edit' => EditSupervisor::route('/{record}/edit'),
         ];
     }
 }

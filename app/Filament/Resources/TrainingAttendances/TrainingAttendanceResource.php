@@ -25,7 +25,9 @@ class TrainingAttendanceResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'fecha_inicio';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Capacitación';
+    protected static string|UnitEnum|null $navigationGroup = 'Cultura y Formación';
+
+    protected static bool $shouldRegisterNavigation = false;
 
     public static function form(Schema $schema): Schema
     {
@@ -53,9 +55,6 @@ class TrainingAttendanceResource extends Resource
     {
         return [
             'index' => ListTrainingAttendances::route('/'),
-            'create' => CreateTrainingAttendance::route('/create'),
-            'view' => ViewTrainingAttendance::route('/{record}'),
-            'edit' => EditTrainingAttendance::route('/{record}/edit'),
         ];
     }
 }

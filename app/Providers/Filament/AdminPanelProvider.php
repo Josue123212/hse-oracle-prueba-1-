@@ -36,6 +36,8 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->brandLogo(fn () => view('filament.admin.sidebar-brand-footer'))
+            ->brandLogoHeight('auto')
             ->font(config('hse_theme.font_family', 'Inria Sans'), provider: GoogleFontProvider::class)
             ->favicon(fn () => asset(config('hse_theme.brand.favicon_path', 'oracle-logo.png')) . '?v=2')
             ->topbar(false)
@@ -53,12 +55,6 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => $primaryPalette,
             ])
-            ->renderHook(
-                'panels::sidebar.logo.after',
-                fn () => config('hse_theme.sidebar.inject_brand_footer', true)
-                    ? view('filament.admin.sidebar-brand-footer')
-                    : '',
-            )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
@@ -67,7 +63,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 AccountWidget::class,
-                FilamentInfoWidget::class,
+                // FilamentInfoWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

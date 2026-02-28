@@ -7,7 +7,7 @@ return [
         'logo_path' => env('HSE_UI_LOGO_PATH', 'Logo-2.png'),
         'favicon_path' => env('HSE_UI_FAVICON_PATH', 'oracle-logo.png'),
         'alt' => env('HSE_UI_BRAND_ALT', 'ORACLE PERU S.A.C.'),
-        'tagline' => env('HSE_UI_BRAND_TAGLINE', 'Gestión GHSE'),
+        'tagline' => env('HSE_UI_BRAND_TAGLINE', 'Gestión HSE'),
     ],
 
     'colors' => [
@@ -22,31 +22,31 @@ return [
     'navigation_groups' => [
         [
             'label' => 'Gestión de Elementos',
-            'icon' => 'gmdi-layers',
+            'icon' => null,
         ],
         [
             'label' => 'Evaluaciones y Auditorías',
-            'icon' => 'gmdi-fact-check',
+            'icon' => null,
         ],
         [
             'label' => 'Organización y Ubicaciones',
-            'icon' => 'gmdi-location-city',
+            'icon' => null,
         ],
         [
             'label' => 'Usuarios y Comunicación',
-            'icon' => 'gmdi-groups',
+            'icon' => null,
         ],
         [
             'label' => 'Capacitación',
-            'icon' => 'gmdi-school',
+            'icon' => null,
         ],
         [
             'label' => 'Reportes y Seguimiento',
-            'icon' => 'gmdi-insights',
+            'icon' => null,
         ],
         [
             'label' => 'Sistema',
-            'icon' => 'gmdi-settings',
+            'icon' => null,
         ],
     ],
 ];

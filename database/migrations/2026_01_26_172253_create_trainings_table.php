@@ -10,22 +10,18 @@ return new class extends Migration
     {
         Schema::create('trainings', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('activity_id')
-                ->nullable()
-                ->constrained('activities')
-                ->onDelete('set null');
-            $table->string('titulo', 255);
+            $table->foreignId('program_id')
+                ->constrained('programs')
+                ->onDelete('cascade');
+            $table->string('tema', 255);
             $table->text('descripcion')->nullable();
-            $table->string('url_video', 500)->nullable();
-            $table->integer('nota_minima')->default(70);
-            $table->enum('estado', ['borrador', 'publicada', 'finalizada'])->default('borrador');
-            $table->date('fecha_inicio')->nullable();
-            $table->date('fecha_fin')->nullable();
-            $table->decimal('duracion_horas', 4, 2)->nullable();
-            $table->foreignId('instructor_id')
-                ->nullable()
-                ->constrained('users')
-                ->onDelete('set null');
+            $table->date('fecha_programada');
+            $table->time('hora_inicio')->nullable();
+            $table->decimal('duracion_horas', 4, 2)->default(1.0);
+            $table->enum('estado', ['programado', 'ejecutado', 'cancelado', 'reprogramado'])->default('programado');
+            $table->integer('asistentes_esperados')->default(0);
+            $table->integer('asistentes_reales')->default(0);
+            $table->foreignId('responsable_id')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
         });
     }

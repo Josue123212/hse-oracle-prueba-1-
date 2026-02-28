@@ -37,12 +37,6 @@
             <th>Estado</th>
             <td colspan="3">{{ ucfirst($inspection->estado) }}</td>
         </tr>
-        @if($inspection->fecha_ejecutada)
-        <tr>
-            <th>Fecha Ejecución</th>
-            <td colspan="3">{{ $inspection->fecha_ejecutada }}</td>
-        </tr>
-        @endif
     </table>
 
     <div class="section">

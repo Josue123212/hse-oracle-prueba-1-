@@ -1,20 +1,7 @@
 <?php
-    $compactPath = config('hse_theme.sidebar.compact_logo_path');
-    $brandLogo = $compactPath ? base_path($compactPath) : base_path(config('hse_theme.brand.logo_path', 'Logo-2.png'));
-    $dataUri = null;
-    if (is_file($brandLogo)) {
-        $data = file_get_contents($brandLogo);
-        if ($data !== false) {
-            $dataUri = 'data:image/png;base64,' . base64_encode($data);
-        }
-    }
-    $alt = config('hse_theme.brand.alt', 'ORACLE PERU S.A.C.');
-    $tagline = config('hse_theme.brand.tagline', 'Gestión GHSE');
+    $logoUrl = 'https://i.ibb.co/XxdrPS6n/Logo-2.png';
 ?>
-<div class="hse-sidebar-brand">
-    @if ($dataUri)
-        <img class="hse-sidebar-brand__logo" src="{{ $dataUri }}" alt="{{ $alt }}">
-    @endif
-    <span class="hse-sidebar-brand__text">{{ $tagline }}</span>
-    <a class="hse-sidebar-brand__link" href="{{ url('/admin') }}">Inicio</a>
-    </div>
+<div class="hse-sidebar-brand" style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.5rem; margin-bottom: 1rem; width: 100%;">
+    <img src="{{ $logoUrl }}" alt="ORACLE PERU S.A.C." width="788" height="317" style="height: 5rem; width: auto; object-fit: contain;" loading="eager" fetchpriority="high">
+    <span class="hse-sidebar-brand__text" style="font-size: 1.1rem; font-weight: 600; color: #334155;">Gestión HSE</span>
+</div>
