@@ -10,6 +10,7 @@ class ActivityObserver
 {
     public function saving(Activity $activity): void
     {
+        /*
         // Ensure state is valid enum if passed as string
         if (is_string($activity->estado)) {
              $activity->estado = ActivityState::tryFrom($activity->estado) ?? ActivityState::PROGRAMADO;
@@ -81,6 +82,7 @@ class ActivityObserver
                  $activity->estado = ActivityState::NO_CUMPLIO;
             }
         }
+        */
 
         // 5. Calculate and store next execution date
         $activity->proxima_ejecucion = $activity->frecuencia === 'eventual' 
@@ -91,7 +93,7 @@ class ActivityObserver
     public function updated(Activity $activity): void
     {
         // Prevent infinite loops if the child update triggers an activity update
-        if ($activity->isDirty(['fecha_inicio', 'fecha_fin', 'estado', 'responsable_id', 'proxima_ejecucion'])) {
+        if ($activity->isDirty(['fecha_inicio', 'fecha_fin', 'responsable_id', 'proxima_ejecucion'])) {
             
             switch ($activity->tipo) {
                 case 'documentacion':
@@ -100,7 +102,6 @@ class ActivityObserver
                             'fecha_programada' => $activity->fecha_inicio,
                             'fecha_aprobacion' => $activity->fecha_fin, // Assuming end date maps to approval
                             'proxima_ejecucion' => $activity->proxima_ejecucion,
-                            'estado' => $this->mapStateToChild($activity->estado, 'documentacion'),
                             'responsable_id' => $activity->responsable_id,
                         ]);
                     }
@@ -112,7 +113,6 @@ class ActivityObserver
                             'fecha_programada' => $activity->fecha_inicio,
                             'fecha_ejecucion' => $activity->fecha_fin,
                             'proxima_ejecucion' => $activity->proxima_ejecucion,
-                            'estado' => $this->mapStateToChild($activity->estado, 'auditoria'),
                             'auditor_id' => $activity->responsable_id, // Map responsible to auditor
                         ]);
                     }
@@ -123,7 +123,6 @@ class ActivityObserver
                         $activity->inspection->updateQuietly([
                             'fecha_programada' => $activity->fecha_inicio,
                             'proxima_ejecucion' => $activity->proxima_ejecucion,
-                            'estado' => $this->mapStateToChild($activity->estado, 'inspeccion'),
                             'responsable_id' => $activity->responsable_id,
                         ]);
                     }
@@ -135,7 +134,6 @@ class ActivityObserver
                             'fecha_programada' => $activity->fecha_inicio,
                             'fecha_ejecucion' => $activity->fecha_fin,
                             'proxima_ejecucion' => $activity->proxima_ejecucion,
-                            'estado' => $this->mapStateToChild($activity->estado, 'capacitacion'),
                             'responsable_id' => $activity->responsable_id,
                         ]);
                     }
@@ -147,7 +145,6 @@ class ActivityObserver
                             'fecha_programada' => $activity->fecha_inicio,
                             'fecha_ejecucion' => $activity->fecha_fin,
                             'proxima_ejecucion' => $activity->proxima_ejecucion,
-                            'estado' => $this->mapStateToChild($activity->estado, 'simulacro'),
                             'responsable_id' => $activity->responsable_id,
                         ]);
                     }
@@ -156,9 +153,8 @@ class ActivityObserver
                 case 'control_operacional':
                     if ($activity->operationalControl) {
                         $activity->operationalControl->updateQuietly([
-                            'fecha_programada' => $activity->fecha_inicio,
+                            'fecha_programada' => $activity->fecha_inicio ?? $activity->created_at, // Fallback for eventual
                             'proxima_ejecucion' => $activity->proxima_ejecucion,
-                            'estado' => $this->mapStateToChild($activity->estado, 'control_operacional'),
                             'responsable_id' => $activity->responsable_id,
                         ]);
                     }
@@ -169,7 +165,6 @@ class ActivityObserver
                         $activity->incident->updateQuietly([
                             'fecha_programada' => $activity->fecha_inicio, // Map start to scheduled/occurrence
                             'proxima_ejecucion' => $activity->proxima_ejecucion,
-                            'estado' => $this->mapStateToChild($activity->estado, 'incidente'),
                             'responsable_id' => $activity->responsable_id,
                         ]);
                     }
@@ -181,7 +176,6 @@ class ActivityObserver
                             'fecha_programada' => $activity->fecha_inicio,
                             'fecha_realizada' => $activity->fecha_fin,
                             'proxima_ejecucion' => $activity->proxima_ejecucion,
-                            'estado' => $this->mapStateToChild($activity->estado, 'comite'),
                             'responsable_id' => $activity->responsable_id,
                         ]);
                     }
@@ -192,7 +186,6 @@ class ActivityObserver
                         $activity->promotion->updateQuietly([
                             'fecha_programada' => $activity->fecha_inicio,
                             'proxima_ejecucion' => $activity->proxima_ejecucion,
-                            'estado' => $this->mapStateToChild($activity->estado, 'promocion'),
                             'responsable_id' => $activity->responsable_id,
                         ]);
                     }
@@ -203,30 +196,6 @@ class ActivityObserver
 
     public function deleted(Activity $activity): void
     {
-        \Livewire\Livewire::dispatch('activity-updated');
-    }
-
-    private function mapStateToChild(string|ActivityState $activityState, string $type): string
-    {
-        $stateValue = $activityState instanceof ActivityState ? $activityState->value : $activityState;
-
-        if ($type === 'documentacion') {
-            return match ($stateValue) {
-                'programado' => 'borrador',
-                'en_proceso' => 'revision',
-                'ejecutado' => 'aprobado',
-                'no_cumplio' => 'obsoleto',
-                default => 'borrador',
-            };
-        }
-
-        // Default mapping for other types using standard activity states
-        return match ($stateValue) {
-            'programado' => 'programado',
-            'en_proceso' => 'en_proceso',
-            'ejecutado' => 'ejecutado',
-            'no_cumplio' => 'no_cumplio',
-            default => 'programado',
-        };
+        // \Livewire\Livewire::dispatch('activity-updated');
     }
 }

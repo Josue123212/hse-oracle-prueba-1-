@@ -25,6 +25,10 @@ class TrainingAttendanceResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'fecha_inicio';
 
+    protected static ?string $modelLabel = 'Asistencia';
+
+    protected static ?string $pluralModelLabel = 'Asistencias';
+
     protected static string|UnitEnum|null $navigationGroup = 'Cultura y Formación';
 
     protected static bool $shouldRegisterNavigation = false;

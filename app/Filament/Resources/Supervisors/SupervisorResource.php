@@ -21,11 +21,17 @@ class SupervisorResource extends Resource
 {
     protected static ?string $model = Supervisor::class;
 
-    protected static string|BackedEnum|null $navigationIcon = null;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-shield-check';
 
     protected static ?string $recordTitleAttribute = 'nombre';
 
     protected static string|UnitEnum|null $navigationGroup = 'Organización y Ubicaciones';
+
+    protected static ?string $navigationLabel = 'Supervisores';
+
+    protected static ?string $modelLabel = 'Supervisor';
+
+    protected static ?string $pluralModelLabel = 'Supervisores';
 
     public static function form(Schema $schema): Schema
     {

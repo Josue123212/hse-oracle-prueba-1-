@@ -8,9 +8,12 @@ use App\Filament\Resources\Trainings\Widgets\TrainingsForToday;
 use App\Filament\Resources\Trainings\Widgets\EventualTrainings;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
+use App\Filament\Traits\HasEvidencePreview;
 
 class ListTrainings extends ListRecords
 {
+    use HasEvidencePreview;
+
     protected static string $resource = TrainingResource::class;
 
     protected function getHeaderWidgets(): array

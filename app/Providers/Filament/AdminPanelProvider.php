@@ -39,7 +39,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogo(fn () => view('filament.admin.sidebar-brand-footer'))
             ->brandLogoHeight('auto')
             ->font(config('hse_theme.font_family', 'Inria Sans'), provider: GoogleFontProvider::class)
-            ->favicon(fn () => asset(config('hse_theme.brand.favicon_path', 'oracle-logo.png')) . '?v=2')
+            ->favicon(fn () => asset(config('hse_theme.brand.favicon_path', 'logo-pestana.png')) . '?v=2')
             ->topbar(false)
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->collapsibleNavigationGroups()
@@ -64,6 +64,16 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 AccountWidget::class,
                 // FilamentInfoWidget::class,
+                // Widgets específicos desactivados por solicitud del usuario (se usa EventualActivities general)
+                // \App\Filament\Resources\Incidents\Widgets\EventualIncidents::class,
+                // \App\Filament\Resources\Audits\Widgets\EventualAudits::class,
+                // \App\Filament\Resources\Committees\Widgets\EventualCommittees::class,
+                // \App\Filament\Resources\Documentations\Widgets\EventualDocuments::class,
+                // \App\Filament\Resources\Drills\Widgets\EventualDrills::class,
+                // \App\Filament\Resources\Inspections\Widgets\EventualInspections::class,
+                // \App\Filament\Resources\OperationalControls\Widgets\EventualOperationalControls::class,
+                // \App\Filament\Resources\Promotions\Widgets\EventualPromotions::class,
+                // \App\Filament\Resources\Trainings\Widgets\EventualTrainings::class,
             ])
             ->middleware([
                 EncryptCookies::class,

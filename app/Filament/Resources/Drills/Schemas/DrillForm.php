@@ -26,6 +26,12 @@ class DrillForm
                     ->preload()
                     ->label('Programa'),
 
+                Select::make('responsable_id')
+                    ->relationship('responsable', 'nombre')
+                    ->searchable()
+                    ->preload()
+                    ->label('Cargo Responsable'),
+
                 TextInput::make('nombre')
                     ->required()
                     ->maxLength(255)
@@ -37,6 +43,8 @@ class DrillForm
 
                 TextInput::make('participantes_count')
                     ->numeric()
+                    ->default(0)
+                    ->required()
                     ->label('Número de Participantes'),
 
                 DatePicker::make('fecha_programada')
@@ -156,21 +164,6 @@ class DrillForm
                         return new HtmlString($html);
                     })
                     ->columnSpanFull(),
-
-                Select::make('estado')
-                    ->options(ActivityState::class)
-                    ->required()
-                    ->default(ActivityState::PROGRAMADO->value)
-                    ->live(),
-
-                Select::make('resultado')
-                    ->label('Resultado')
-                    ->options([
-                        'exitoso' => 'Exitoso',
-                        'con_observaciones' => 'Con Observaciones',
-                        'fallido' => 'Fallido',
-                    ])
-                    ->visible(fn (Get $get) => $get('estado') === ActivityState::EJECUTADO->value),
 
                 Textarea::make('descripcion')
                     ->label('Descripción / Observaciones')

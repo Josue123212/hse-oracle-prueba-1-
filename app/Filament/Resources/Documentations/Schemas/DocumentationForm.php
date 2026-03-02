@@ -13,7 +13,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Placeholder;
 use Filament\Schemas\Schema;
-use Filament\Forms\Get;
+use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Support\HtmlString;
 use Carbon\Carbon;
 
@@ -30,8 +30,14 @@ class DocumentationForm
                         ->preload()
                         ->label('Programa'),
 
+                    Select::make('responsable_id')
+                        ->relationship('responsable', 'nombre')
+                        ->searchable()
+                        ->preload()
+                        ->label('Cargo Responsable'),
+
                     Select::make('activity_id')
-                        ->relationship('activity', 'titulo')
+                        ->relationship('activity', 'nombre')
                         ->label('Actividad Relacionada')
                         ->searchable()
                         ->preload(),
@@ -187,37 +193,11 @@ class DocumentationForm
                         ->columnSpanFull(),
 
                     Select::make('responsable_id')
-                        ->relationship('responsable', 'name')
+                        ->relationship('responsable', 'nombre')
                         ->searchable()
                         ->preload()
                         ->label('Responsable'),
                     
-                    TextInput::make('activity_estado_display')
-                        ->label('Estado de la Actividad')
-                        ->disabled()
-                        ->dehydrated(false)
-                        ->formatStateUsing(fn ($record) => $record?->activity?->estado ? ActivityState::tryFrom($record->activity->estado)?->getLabel() ?? $record->activity->estado : '-'),
-                    
-                    Select::make('estado')
-                        ->label('Estado Documento')
-                        ->options(ActivityState::class)
-                        ->default(ActivityState::PROGRAMADO->value)
-                        ->required()
-                        ->live(),
-
-                    Select::make('resultado')
-                        ->label('Estado de Vigencia')
-                        ->options([
-                            'vigente' => 'Vigente',
-                            'obsoleto' => 'Obsoleto',
-                        ])
-                        ->visible(fn (Get $get) => $get('estado') === ActivityState::EJECUTADO->value),
-
-                    FileUpload::make('archivo_path')
-                        ->label('Archivo')
-                        ->directory('documentations')
-                        ->columnSpanFull(),
-
                     Textarea::make('descripcion')
                         ->label('Descripción')
                         ->columnSpanFull(),

@@ -15,7 +15,6 @@ use BackedEnum;
 use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
@@ -26,6 +25,12 @@ class ActivityResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-list-bullet';
 
     protected static string|UnitEnum|null $navigationGroup = 'Gestión de Programas';
+
+    protected static ?string $navigationLabel = 'Actividades';
+
+    protected static ?string $modelLabel = 'Actividad';
+
+    protected static ?string $pluralModelLabel = 'Actividades';
 
     protected static ?string $recordTitleAttribute = 'nombre';
 
@@ -72,7 +77,10 @@ class ActivityResource extends Resource
     {
         return [
             'nombre',
-            'responsable.name',
+            'descripcion',
+            'responsable.nombre',
+            'responsableDelegado.nombre',
+            'apoyo',
         ];
     }
 

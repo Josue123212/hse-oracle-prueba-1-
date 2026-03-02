@@ -8,9 +8,12 @@ use App\Filament\Resources\Inspections\Widgets\InspectionsForToday;
 use App\Filament\Resources\Inspections\Widgets\EventualInspections;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
+use App\Filament\Traits\HasEvidencePreview;
 
 class ListInspections extends ListRecords
 {
+    use HasEvidencePreview;
+
     protected static string $resource = InspectionResource::class;
 
     protected function getHeaderWidgets(): array

@@ -24,6 +24,12 @@ class IncidentResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Seguridad y Emergencias';
 
+    protected static ?string $navigationLabel = 'Incidentes';
+
+    protected static ?string $modelLabel = 'Incidente';
+
+    protected static ?string $pluralModelLabel = 'Incidentes';
+
     protected static ?string $recordTitleAttribute = 'titulo';
 
     public static function form(Schema $schema): Schema

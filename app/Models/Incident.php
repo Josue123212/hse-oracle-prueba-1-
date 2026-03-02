@@ -17,7 +17,6 @@ class Incident extends Model
         'fecha_ocurrencia' => 'datetime',
         'fecha_programada' => 'date',
         'proxima_ejecucion' => 'date',
-        'estado' => ActivityState::class,
     ];
 
     protected static function booted()
@@ -52,6 +51,6 @@ class Incident extends Model
 
     public function responsable(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'responsable_id');
+        return $this->belongsTo(Position::class, 'responsable_id');
     }
 }

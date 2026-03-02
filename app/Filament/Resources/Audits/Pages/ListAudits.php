@@ -8,9 +8,12 @@ use App\Filament\Resources\Audits\Widgets\AuditsForToday;
 use App\Filament\Resources\Audits\Widgets\EventualAudits;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
+use App\Filament\Traits\HasEvidencePreview;
 
 class ListAudits extends ListRecords
 {
+    use HasEvidencePreview;
+
     protected static string $resource = AuditResource::class;
 
     protected function getHeaderActions(): array

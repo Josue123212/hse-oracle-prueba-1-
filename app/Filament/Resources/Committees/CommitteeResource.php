@@ -24,6 +24,12 @@ class CommitteeResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Gestión Administrativa';
 
+    protected static ?string $navigationLabel = 'Comités';
+
+    protected static ?string $modelLabel = 'Comité';
+
+    protected static ?string $pluralModelLabel = 'Comités';
+
     protected static ?string $recordTitleAttribute = 'nombre';
 
     public static function form(Schema $schema): Schema

@@ -42,8 +42,8 @@ class TrainingForm
                                     ->required(),
                                 
                                 Select::make('responsable_id')
-                                    ->label('Responsable')
-                                    ->relationship('responsable', 'name')
+                                    ->label('Cargo Responsable')
+                                    ->relationship('responsable', 'nombre')
                                     ->searchable()
                                     ->preload(),
 
@@ -174,37 +174,6 @@ class TrainingForm
                                     })
                                     ->columnSpanFull(),
                             ]),
-                    ]),
-
-                Section::make('Ejecución')
-                    ->schema([
-                        Grid::make(2)
-                            ->schema([
-                                Select::make('estado')
-                                    ->label('Estado')
-                                    ->options(ActivityState::class)
-                                    ->default(ActivityState::PROGRAMADO->value)
-                                    ->required()
-                                    ->live(),
-
-                                Select::make('resultado')
-                                    ->label('Resultado')
-                                    ->options([
-                                        'aprobado' => 'Aprobado',
-                                        'reprobado' => 'Reprobado',
-                                        'pendiente' => 'Pendiente',
-                                    ])
-                                    ->visible(fn (Get $get) => $get('estado') === ActivityState::EJECUTADO->value),
-                                
-                                TextInput::make('duracion_horas')
-                                    ->label('Duración (horas)')
-                                    ->numeric(),
-                            ]),
-                        
-                        Textarea::make('descripcion')
-                            ->label('Observaciones / Comentarios')
-                            ->rows(3)
-                            ->columnSpanFull(),
                     ]),
 
                 Section::make('Materiales y Recursos')

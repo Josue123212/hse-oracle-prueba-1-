@@ -8,39 +8,28 @@ use App\Enums\ActivityState;
 
 class CommitteeObserver
 {
-    private function mapStatus(string|ActivityState $status): string
-    {
-        $statusValue = $status instanceof ActivityState ? $status->value : $status;
-
-        return match ($statusValue) {
-            ActivityState::PROGRAMADO->value => ActivityState::PROGRAMADO->value,
-            ActivityState::EN_PROCESO->value => ActivityState::EN_PROCESO->value,
-            ActivityState::EJECUTADO->value => ActivityState::EJECUTADO->value,
-            ActivityState::NO_CUMPLIO->value => ActivityState::NO_CUMPLIO->value,
-            // Legacy mappings
-            'realizado' => ActivityState::EJECUTADO->value,
-            'cancelado' => ActivityState::NO_CUMPLIO->value,
-            default => ActivityState::PROGRAMADO->value,
-        };
-    }
-
+    /**
+     * Handle the Committee "created" event.
+     */
     public function created(Committee $committee): void
     {
         if (!$committee->activity_id) {
-            $activity = Activity::create([
+            $activity = new Activity([
                 'program_id' => $committee->program_id,
                 'nombre' => $committee->nombre,
                 'descripcion' => $committee->tema_principal ?? $committee->nombre,
                 'tipo' => 'comite',
                 'frecuencia' => $committee->frecuencia ?? 'unico',
-                'estado' => $this->mapStatus($committee->estado),
-                'unidad_medida' => 'Porcentaje',
+                'estado' => ActivityState::PROGRAMADO,
+                'unidad_medida' => 'Reunión',
                 'fecha_inicio' => $committee->fecha_programada,
                 'fecha_fin' => $committee->fecha_realizada ?? $committee->fecha_programada,
                 'responsable_id' => $committee->responsable_id,
                 'es_obligatoria' => true,
                 'meta' => 100,
             ]);
+            $activity->is_creating_from_ref = true;
+            $activity->save();
 
             $committee->activity_id = $activity->id;
             $committee->proxima_ejecucion = $activity->proxima_ejecucion;
@@ -48,6 +37,9 @@ class CommitteeObserver
         }
     }
 
+    /**
+     * Handle the Committee "updated" event.
+     */
     public function updated(Committee $committee): void
     {
         if ($committee->activity_id) {
@@ -56,7 +48,6 @@ class CommitteeObserver
                 $activity->update([
                     'nombre' => $committee->nombre,
                     'descripcion' => $committee->tema_principal ?? $committee->nombre,
-                    'estado' => $this->mapStatus($committee->estado),
                     'frecuencia' => $committee->frecuencia ?? $activity->frecuencia,
                     'fecha_inicio' => $committee->fecha_programada,
                     'fecha_fin' => $committee->fecha_realizada ?? $committee->fecha_programada,

@@ -8,41 +8,28 @@ use App\Enums\ActivityState;
 
 class DrillObserver
 {
-    private function mapStatus(string|ActivityState $status): string
-    {
-        $statusValue = $status instanceof ActivityState ? $status->value : $status;
-
-        return match ($statusValue) {
-            ActivityState::PROGRAMADO->value => ActivityState::PROGRAMADO->value,
-            ActivityState::EN_PROCESO->value => ActivityState::EN_PROCESO->value,
-            ActivityState::EJECUTADO->value => ActivityState::EJECUTADO->value,
-            ActivityState::NO_CUMPLIO->value => ActivityState::NO_CUMPLIO->value,
-            // Legacy mappings
-            'cancelado', 'vencido' => ActivityState::NO_CUMPLIO->value,
-            default => ActivityState::PROGRAMADO->value,
-        };
-    }
-
+    /**
+     * Handle the Drill "created" event.
+     */
     public function created(Drill $drill): void
     {
         if (!$drill->activity_id) {
-            $activity = Activity::create([
+            $activity = new Activity([
                 'program_id' => $drill->program_id,
                 'nombre' => $drill->nombre,
                 'descripcion' => $drill->descripcion ?? $drill->nombre,
                 'tipo' => 'simulacro',
                 'frecuencia' => $drill->frecuencia ?? 'unico',
-                'estado' => $this->mapStatus($drill->estado),
-                'unidad_medida' => 'Porcentaje',
+                'estado' => ActivityState::PROGRAMADO,
+                'unidad_medida' => 'Simulacros',
                 'fecha_inicio' => $drill->fecha_programada,
                 'fecha_fin' => $drill->fecha_ejecucion ?? $drill->fecha_programada,
-                // Drill usually doesn't have responsable_id in migration? Need to check.
-                // Assuming it might use auth user or default if missing.
-                // Let's check Drill model/migration later. If missing, default to 1 or null.
-                'responsable_id' => auth()->id() ?? 1, 
+                'responsable_id' => $drill->responsable_id, // Asumiendo que hay un responsable
                 'es_obligatoria' => true,
                 'meta' => 100,
             ]);
+            $activity->is_creating_from_ref = true;
+            $activity->save();
 
             $drill->activity_id = $activity->id;
             $drill->proxima_ejecucion = $activity->proxima_ejecucion;
@@ -50,6 +37,9 @@ class DrillObserver
         }
     }
 
+    /**
+     * Handle the Drill "updated" event.
+     */
     public function updated(Drill $drill): void
     {
         if ($drill->activity_id) {
@@ -58,7 +48,6 @@ class DrillObserver
                 $activity->update([
                     'nombre' => $drill->nombre,
                     'descripcion' => $drill->descripcion ?? $drill->nombre,
-                    'estado' => $this->mapStatus($drill->estado),
                     'frecuencia' => $drill->frecuencia ?? $activity->frecuencia,
                     'fecha_inicio' => $drill->fecha_programada,
                     'fecha_fin' => $drill->fecha_ejecucion ?? $drill->fecha_programada,

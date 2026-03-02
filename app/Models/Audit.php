@@ -18,7 +18,6 @@ class Audit extends Model
         'descripcion',
         'fecha_programada',
         'fecha_vencimiento',
-        'estado',
         'hallazgos',
         'auditor_id',
         'tipo_auditoria',
@@ -36,7 +35,6 @@ class Audit extends Model
         'fecha_programada' => 'date',
         'fecha_ejecucion' => 'date',
         'proxima_ejecucion' => 'date',
-        'estado' => ActivityState::class,
     ];
 
     protected static function booted()
@@ -68,6 +66,6 @@ class Audit extends Model
 
     public function auditor(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'auditor_id');
+        return $this->belongsTo(Supervisor::class, 'auditor_id');
     }
 }

@@ -26,6 +26,12 @@ class CommitteeForm
                     ->preload()
                     ->label('Programa'),
                 
+                Select::make('responsable_id')
+                    ->relationship('responsable', 'nombre')
+                    ->searchable()
+                    ->preload()
+                    ->label('Cargo Responsable'),
+                
                 TextInput::make('nombre')
                     ->required()
                     ->maxLength(255)
@@ -154,16 +160,10 @@ class CommitteeForm
                     ->columnSpanFull(),
 
                 Select::make('responsable_id')
-                    ->relationship('responsable', 'name')
+                    ->relationship('responsable', 'nombre')
                     ->searchable()
                     ->preload()
                     ->label('Responsable'),
-
-                Select::make('estado')
-                    ->label('Estado')
-                    ->options(ActivityState::class)
-                    ->required()
-                    ->default(ActivityState::PROGRAMADO->value),
 
                 Textarea::make('acuerdos')
                     ->label('Acuerdos / Observaciones')

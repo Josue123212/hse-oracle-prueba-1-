@@ -24,6 +24,12 @@ class DrillResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Seguridad y Emergencias';
 
+    protected static ?string $navigationLabel = 'Simulacros';
+
+    protected static ?string $modelLabel = 'Simulacro';
+
+    protected static ?string $pluralModelLabel = 'Simulacros';
+
     protected static ?string $recordTitleAttribute = 'nombre';
 
     public static function form(Schema $schema): Schema

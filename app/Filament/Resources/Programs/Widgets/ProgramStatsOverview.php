@@ -4,9 +4,10 @@ namespace App\Filament\Resources\Programs\Widgets;
 
 use App\Models\Program;
 use App\Models\Activity;
-use App\Models\Inspection;
+use App\Models\ActivityExecution;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use App\Enums\ActivityState;
 
 class ProgramStatsOverview extends StatsOverviewWidget
 {
@@ -23,7 +24,9 @@ class ProgramStatsOverview extends StatsOverviewWidget
                 ->descriptionIcon('heroicon-m-list-bullet')
                 ->color('info'),
 
-            Stat::make('Inspecciones Ejecutadas', Inspection::where('estado', 'ejecutado')->count())
+            Stat::make('Inspecciones Ejecutadas', ActivityExecution::where('estado', ActivityState::EJECUTADO)
+                    ->whereHas('activity', fn($q) => $q->where('tipo', 'inspeccion'))
+                    ->count())
                 ->description('Cumplimiento operativo')
                 ->descriptionIcon('heroicon-m-check-circle')
                 ->color('success'),

@@ -23,7 +23,6 @@ class Training extends Model
         'fecha_ejecucion',
         'hora_inicio',
         'duracion_horas',
-        'estado',
         'asistentes_esperados',
         'asistentes_reales',
         'responsable_id',
@@ -39,7 +38,6 @@ class Training extends Model
         'fecha_ejecucion' => 'date',
         'proxima_ejecucion' => 'date',
         'duracion_horas' => 'decimal:2',
-        'estado' => ActivityState::class,
     ];
 
     protected static function booted()
@@ -71,7 +69,7 @@ class Training extends Model
 
     public function responsable(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'responsable_id');
+        return $this->belongsTo(Position::class, 'responsable_id');
     }
 
     public function attendances(): HasMany

@@ -28,6 +28,12 @@ class InspectionResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Operaciones y Control';
 
+    protected static ?string $navigationLabel = 'Inspecciones';
+
+    protected static ?string $modelLabel = 'Inspección';
+
+    protected static ?string $pluralModelLabel = 'Inspecciones';
+
     protected static ?string $recordTitleAttribute = 'nombre';
 
     public static function getWidgets(): array
@@ -72,7 +78,7 @@ class InspectionResource extends Resource
             'nombre',
             'activity.nombre',
             'location.nombre',
-            'responsable.name',
+            'responsable.nombre',
             'estado',
             'observaciones',
         ];
@@ -83,7 +89,7 @@ class InspectionResource extends Resource
         return [
             'Actividad' => $record->activity->nombre ?? '',
             'Sede' => $record->location->nombre ?? '',
-            'Inspector' => $record->responsable->name ?? '',
+            'Inspector' => $record->responsable->nombre ?? '',
             'Estado' => ucfirst($record->estado) ?? '',
         ];
     }

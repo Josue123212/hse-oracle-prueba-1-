@@ -4,42 +4,49 @@ namespace App\Filament\Resources\Activities\Schemas;
 
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\RepeatableEntry;
 
 class ActivityInfolist
 {
     public static function configure(Schema $schema): Schema
     {
         return $schema
-            ->components([
-                Section::make('Detalle de Actividad')
+            ->schema([
+                Section::make('Detalles de Actividad')
                     ->schema([
                         Grid::make(3)
                             ->schema([
                                 TextEntry::make('nombre')
                                     ->label('Actividad')
                                     ->columnSpan(2),
-                                
+
                                 TextEntry::make('program.nombre')
                                     ->label('Programa'),
                             ]),
                         
                         Grid::make(3)
                             ->schema([
-                                TextEntry::make('responsable.name')
-                                    ->label('Responsable'),
+                                TextEntry::make('responsable.nombre')
+                                    ->label('Cargo Responsable'),
 
                                 TextEntry::make('frecuencia')
                                     ->label('Frecuencia'),
                                 
                                 TextEntry::make('fecha_inicio')
-                                    ->label('Fecha Programada')
-                                    ->date(),
+                                    ->label(fn ($record) => $record->frecuencia === 'eventual' ? 'Última Ejecución' : 'Fecha Programada')
+                                    ->date('d/m/Y')
+                                    ->visible(fn ($record) => !($record->frecuencia === 'eventual' && !$record->fecha_inicio)),
 
                                 TextEntry::make('veces_al_anio')
-                                    ->label('Veces al Año'),
+                                    ->label('Veces al Año')
+                                    ->visible(fn ($record) => $record->frecuencia !== 'eventual'),
+                                
+                                TextEntry::make('ejecuciones_realizadas')
+                                    ->label('Veces Ejecutado')
+                                    ->visible(fn ($record) => $record->frecuencia === 'eventual'),
 
                                 TextEntry::make('meta')
                                     ->label('Meta')
@@ -51,12 +58,31 @@ class ActivityInfolist
                             ->boolean(),
                     ]),
 
+                Section::make('Historial de Ejecuciones')
+                    ->schema([
+                        RepeatableEntry::make('executions')
+                            ->label('')
+                            ->schema([
+                                Grid::make(2)
+                                    ->schema([
+                                        TextEntry::make('fecha_ejecucion_real')
+                                            ->label('Fecha de Ejecución')
+                                            ->date('d/m/Y'),
+                                        TextEntry::make('created_at')
+                                            ->label('Registrado el')
+                                            ->date('d/m/Y H:i'),
+                                    ]),
+                            ])
+                            ->columns(2),
+                    ])
+                    ->visible(fn ($record) => $record->frecuencia === 'eventual' && $record->executions()->exists()),
+
                 Section::make('Detalles de Auditoría')
                     ->schema([
                         Grid::make(2)
                             ->schema([
-                                TextEntry::make('audit.auditor.name')
-                                    ->label('Auditor'),
+                                TextEntry::make('audit.auditor.nombre')
+                                    ->label('Supervisor Auditor'),
                                 TextEntry::make('audit.hallazgos')
                                     ->label('Hallazgos'),
                             ]),

@@ -8,39 +8,28 @@ use App\Enums\ActivityState;
 
 class IncidentObserver
 {
-    private function mapStatus(string|ActivityState $status): string
-    {
-        $statusValue = $status instanceof ActivityState ? $status->value : $status;
-
-        return match ($statusValue) {
-            ActivityState::PROGRAMADO->value => ActivityState::PROGRAMADO->value,
-            ActivityState::EN_PROCESO->value => ActivityState::EN_PROCESO->value,
-            ActivityState::EJECUTADO->value => ActivityState::EJECUTADO->value,
-            ActivityState::NO_CUMPLIO->value => ActivityState::NO_CUMPLIO->value,
-            // Legacy mappings
-            'abierto', 'investigacion' => ActivityState::PROGRAMADO->value,
-            'cerrado' => ActivityState::EJECUTADO->value,
-            default => ActivityState::PROGRAMADO->value,
-        };
-    }
-
+    /**
+     * Handle the Incident "created" event.
+     */
     public function created(Incident $incident): void
     {
         if (!$incident->activity_id) {
-            $activity = Activity::create([
+            $activity = new Activity([
                 'program_id' => $incident->program_id,
                 'nombre' => $incident->titulo,
                 'descripcion' => $incident->descripcion ?? $incident->titulo,
                 'tipo' => 'incidente',
-                'frecuencia' => $incident->frecuencia ?? 'unico',
-                'estado' => $this->mapStatus($incident->estado),
-                'unidad_medida' => 'Unidad',
+                'frecuencia' => $incident->frecuencia ?? 'eventual',
+                'estado' => ActivityState::PROGRAMADO,
+                'unidad_medida' => 'Evento',
                 'fecha_inicio' => $incident->fecha_programada ?? $incident->fecha_ocurrencia,
                 'fecha_fin' => $incident->fecha_programada ?? $incident->fecha_ocurrencia,
                 'responsable_id' => $incident->responsable_id,
                 'es_obligatoria' => true,
                 'meta' => 100,
             ]);
+            $activity->is_creating_from_ref = true;
+            $activity->save();
 
             $incident->activity_id = $activity->id;
             $incident->proxima_ejecucion = $activity->proxima_ejecucion;
@@ -48,6 +37,9 @@ class IncidentObserver
         }
     }
 
+    /**
+     * Handle the Incident "updated" event.
+     */
     public function updated(Incident $incident): void
     {
         if ($incident->activity_id) {
@@ -56,7 +48,6 @@ class IncidentObserver
                 $activity->update([
                     'nombre' => $incident->titulo,
                     'descripcion' => $incident->descripcion ?? $incident->titulo,
-                    'estado' => $this->mapStatus($incident->estado),
                     'frecuencia' => $incident->frecuencia ?? $activity->frecuencia,
                     'fecha_inicio' => $incident->fecha_programada ?? $incident->fecha_ocurrencia,
                     'fecha_fin' => $incident->fecha_programada ?? $incident->fecha_ocurrencia,

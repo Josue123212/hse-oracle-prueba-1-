@@ -2,118 +2,136 @@
 
 namespace App\Filament\Resources\Documentations\Widgets;
 
-use App\Models\Documentation;
+use App\Models\Activity;
+use App\Models\ActivityExecution;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Filament\Actions\Action;
+use Livewire\Attributes\On;
 
 class EventualDocuments extends BaseWidget
 {
     protected int | string | array $columnSpan = 'full';
 
-    protected static ?int $sort = 2; // Show after PendingDocuments (or before? let's make it 2 for now, and Pending 1)
+    protected static ?int $sort = 2;
+
+    protected static ?string $heading = 'Actividades Eventuales - Documentación';
+
+    protected ?string $pollingInterval = '30s';
+
+    #[On('activity-executed')]
+    public function refresh(): void
+    {
+    }
 
     public function table(Table $table): Table
     {
         return $table
             ->query(
-                Documentation::query()
-                    ->whereIn('estado', ['borrador', 'revision'])
-                    ->whereHas('activity', function ($q) {
-                        $q->where('frecuencia', 'eventual');
+                Activity::query()
+                    ->where(function ($query) {
+                        $query->where('tipo', 'documentacion')
+                              ->orWhereHas('documentation');
                     })
+                    ->where('frecuencia', 'eventual')
             )
-            ->heading('Documentación Eventual / No Programada')
             ->columns([
-                Tables\Columns\TextColumn::make('program.nombre')
-                    ->label('Programa')
-                    ->badge()
-                    ->color('gray'),
-                Tables\Columns\TextColumn::make('titulo')
-                    ->label('Título')
+                Tables\Columns\TextColumn::make('nombre')
+                    ->label('Actividad / Documento')
+                    ->description(fn (Activity $record) => $record->documentation ? "Versión: {$record->documentation->version}" : ($record->descripcion ?? 'Sin descripción'))
                     ->weight('bold')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('version')
-                    ->label('Ver.'),
-                Tables\Columns\TextColumn::make('activity.frecuencia')
-                    ->label('Frecuencia')
-                    ->badge()
-                    ->color('warning')
-                    ->formatStateUsing(fn ($state) => ucfirst($state)),
-                Tables\Columns\TextColumn::make('fecha_inicio')
-                    ->label('Fecha')
-                    ->date('d/m/Y'), // Use actual date from record if available
-                Tables\Columns\TextColumn::make('progreso')
-                    ->label('Progreso')
-                    ->state(function (Documentation $record): string {
-                        if ($record->activity) {
-                            return "{$record->activity->ejecuciones_realizadas} / {$record->activity->veces_al_anio}";
-                        }
-                        return "N/A";
-                    })
-                    ->badge()
-                    ->color('info'),
-                Tables\Columns\TextColumn::make('estado')
-                    ->label('Estado')
-                    ->badge()
-                    ->colors([
-                        'warning' => 'borrador',
-                        'info' => 'revision',
-                    ]),
+                    ->wrap(),
             ])
             ->actions([
-                Action::make('aprobar_documento')
-                    ->label(function (Documentation $record) {
-                        $progress = "N/A";
-                        if ($record->activity) {
-                            $progress = "{$record->activity->ejecuciones_realizadas}/{$record->activity->veces_al_anio}";
-                        }
-                        return "Aprobar / Publicar ($progress)";
-                    })
-                    ->icon('heroicon-o-check-badge')
-                    ->color('success')
+                Action::make('iniciar')
+                    ->label(fn (Activity $record) => $this->hasExecutedToday($record) ? 'Completado Hoy' : 'Iniciar')
+                    ->icon(fn (Activity $record) => $this->hasExecutedToday($record) ? 'heroicon-o-check-circle' : 'heroicon-o-play')
+                    ->color(fn (Activity $record) => $this->hasExecutedToday($record) ? 'gray' : 'success')
+                    ->disabled(fn (Activity $record) => $this->hasExecutedToday($record))
                     ->button()
-                    ->requiresConfirmation()
-                    ->modalHeading('Aprobar Documento')
-                    ->modalDescription(function (Documentation $record) {
-                        $progress = "";
-                        if ($record->activity) {
-                            $progress = "Progreso actual: {$record->activity->ejecuciones_realizadas}/{$record->activity->veces_al_anio}.";
-                        }
-                        return "El documento pasará a estado 'Aprobado'. $progress";
-                    })
-                    ->action(function (Documentation $record) {
-                        if ($record->activity) {
-                            $record->activity->increment('ejecuciones_realizadas');
+                    ->form([
+                        \Filament\Forms\Components\Textarea::make('observacion')
+                            ->label('Observaciones / Cambios')
+                            ->rows(3)
+                            ->columnSpanFull(),
+                        \Filament\Forms\Components\FileUpload::make('evidencia')
+                            ->label('Archivo del Documento')
+                            ->disk('public') // Cambiamos a disco local temporalmente
+                            ->directory('temp-uploads') // Directorio temporal local
+                            ->visibility('private')
+                            ->columnSpanFull(),
+
+                        \Filament\Schemas\Components\Section::make('Detalles del Documento')
+                            ->schema([
+                                \Filament\Schemas\Components\Grid::make(2)
+                                    ->schema([
+                                        \Filament\Forms\Components\TextInput::make('data.version_actual')
+                                            ->label('Versión Actualizada'),
+                                        \Filament\Forms\Components\DatePicker::make('data.fecha_aprobacion')
+                                            ->label('Fecha Aprobación')
+                                            ->default(now()),
+                                    ]),
+                            ]),
+                    ])
+                    ->modalHeading('Ejecutar Documentación Eventual')
+                    ->modalSubmitActionLabel('Guardar')
+                    ->action(function (Activity $record, array $data) {
+                        $evidenciaLocalPath = $data['evidencia'] ?? null;
+                        $finalDrivePath = null;
+                        
+                        if ($evidenciaLocalPath) {
+                            $localDisk = \Illuminate\Support\Facades\Storage::disk('public');
+                            $googleDisk = \Illuminate\Support\Facades\Storage::disk('google');
                             
-                            if ($record->activity->ejecuciones_realizadas >= $record->activity->veces_al_anio) {
-                                $record->activity->update(['estado' => 'ejecutado', 'fecha_fin' => now()]);
-                                $record->update([
-                                    'estado' => 'aprobado',
-                                ]);
-                                $message = 'Documento aprobado y actividad completada (Meta alcanzada)';
-                            } else {
-                                $record->activity->update(['estado' => 'en_proceso']);
-                                $record->update([
-                                    'estado' => 'aprobado',
-                                ]);
-                                $message = "Aprobación registrada. Progreso: {$record->activity->ejecuciones_realizadas}/{$record->activity->veces_al_anio}";
+                            if ($localDisk->exists($evidenciaLocalPath)) {
+                                $targetDirectory = \App\Services\DrivePathGenerator::generate($record);
+                                $fileName = basename($evidenciaLocalPath);
+                                $targetPath = trim($targetDirectory, '/') . '/' . $fileName;
+                                
+                                try {
+                                    if (!$googleDisk->exists($targetDirectory)) {
+                                         $googleDisk->makeDirectory($targetDirectory);
+                                    }
+                                    
+                                    $fileContents = $localDisk->get($evidenciaLocalPath);
+                                    $googleDisk->put($targetPath, $fileContents);
+                                    
+                                    if ($googleDisk->exists($targetPath)) {
+                                        $finalDrivePath = $targetPath;
+                                        $localDisk->delete($evidenciaLocalPath);
+                                    }
+                                } catch (\Exception $e) {
+                                    \Illuminate\Support\Facades\Log::error("Error moviendo archivo: " . $e->getMessage());
+                                }
                             }
-                        } else {
-                            $record->update([
-                                'estado' => 'aprobado',
-                            ]);
-                            $message = 'Documento aprobado exitosamente';
                         }
+
+                        ActivityExecution::create([
+                            'activity_id' => $record->id,
+                            'observacion' => $data['observacion'] ?? null,
+                            'evidencia' => $finalDrivePath,
+                            'estado' => \App\Enums\ActivityState::EJECUTADO,
+                            'fecha_ejecucion_real' => now(),
+                            'fecha_programada' => null,
+                            'data' => $data['data'] ?? [],
+                        ]);
                         
                         \Filament\Notifications\Notification::make()
-                            ->title($message)
+                            ->title('Documentación Eventual Ejecutada')
                             ->success()
                             ->send();
+
+                        $this->dispatch('activity-executed');
                     }),
             ])
-            ->emptyStateHeading('No hay documentación eventual pendiente')
             ->paginated(false);
+    }
+
+    protected function hasExecutedToday(Activity $activity): bool
+    {
+        return $activity->executions()
+            ->whereDate('created_at', now())
+            ->exists();
     }
 }

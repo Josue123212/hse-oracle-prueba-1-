@@ -27,8 +27,8 @@ class TrainingInfolist
                         
                         Grid::make(3)
                             ->schema([
-                                TextEntry::make('responsable.name')
-                                    ->label('Responsable'),
+                                TextEntry::make('responsable.nombre')
+                                    ->label('Cargo Responsable'),
 
                                 TextEntry::make('fecha_programada')
                                     ->label('Fecha Programada')

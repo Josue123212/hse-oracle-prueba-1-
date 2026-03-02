@@ -8,40 +8,28 @@ use App\Enums\ActivityState;
 
 class DocumentationObserver
 {
-    private function mapStatus(string|ActivityState $status): string
-    {
-        $statusValue = $status instanceof ActivityState ? $status->value : $status;
-
-        return match ($statusValue) {
-            ActivityState::PROGRAMADO->value => ActivityState::PROGRAMADO->value,
-            ActivityState::EN_PROCESO->value => ActivityState::EN_PROCESO->value,
-            ActivityState::EJECUTADO->value => ActivityState::EJECUTADO->value,
-            ActivityState::NO_CUMPLIO->value => ActivityState::NO_CUMPLIO->value,
-            // Legacy mappings
-            'borrador', 'revision' => ActivityState::PROGRAMADO->value,
-            'aprobado' => ActivityState::EJECUTADO->value,
-            'obsoleto' => ActivityState::NO_CUMPLIO->value,
-            default => ActivityState::PROGRAMADO->value,
-        };
-    }
-
+    /**
+     * Handle the Documentation "created" event.
+     */
     public function created(Documentation $documentation): void
     {
         if (!$documentation->activity_id) {
-            $activity = Activity::create([
+            $activity = new Activity([
                 'program_id' => $documentation->program_id,
                 'nombre' => $documentation->titulo,
                 'descripcion' => $documentation->descripcion ?? $documentation->titulo,
                 'tipo' => 'documentacion',
                 'frecuencia' => $documentation->frecuencia ?? 'unico',
-                'estado' => $this->mapStatus($documentation->estado),
+                'estado' => ActivityState::PROGRAMADO,
                 'unidad_medida' => 'Documento',
-                'fecha_inicio' => $documentation->fecha_programada ?? now(),
-                'fecha_fin' => $documentation->fecha_aprobacion ?? $documentation->fecha_programada ?? now(),
+                'fecha_inicio' => $documentation->fecha_programada,
+                'fecha_fin' => $documentation->fecha_aprobacion ?? $documentation->fecha_programada,
                 'responsable_id' => $documentation->responsable_id,
                 'es_obligatoria' => true,
                 'meta' => 100,
             ]);
+            $activity->is_creating_from_ref = true;
+            $activity->save();
 
             $documentation->activity_id = $activity->id;
             $documentation->proxima_ejecucion = $activity->proxima_ejecucion;
@@ -49,6 +37,9 @@ class DocumentationObserver
         }
     }
 
+    /**
+     * Handle the Documentation "updated" event.
+     */
     public function updated(Documentation $documentation): void
     {
         if ($documentation->activity_id) {
@@ -57,7 +48,6 @@ class DocumentationObserver
                 $updates = [
                     'nombre' => $documentation->titulo,
                     'descripcion' => $documentation->descripcion ?? $documentation->titulo,
-                    'estado' => $this->mapStatus($documentation->estado),
                     'fecha_inicio' => $documentation->fecha_programada ?? $activity->fecha_inicio,
                     'fecha_fin' => $documentation->fecha_aprobacion ?? $documentation->fecha_programada ?? $activity->fecha_fin,
                     'responsable_id' => $documentation->responsable_id,

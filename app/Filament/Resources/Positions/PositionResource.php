@@ -21,11 +21,17 @@ class PositionResource extends Resource
 {
     protected static ?string $model = Position::class;
 
-    protected static string|BackedEnum|null $navigationIcon = null;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-user-group';
 
     protected static ?string $recordTitleAttribute = 'nombre';
 
     protected static string|UnitEnum|null $navigationGroup = 'Organización y Ubicaciones';
+
+    protected static ?string $navigationLabel = 'Cargos';
+
+    protected static ?string $modelLabel = 'Cargo';
+
+    protected static ?string $pluralModelLabel = 'Cargos';
 
     public static function form(Schema $schema): Schema
     {

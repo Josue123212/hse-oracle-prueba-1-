@@ -32,9 +32,14 @@ class InspectionForm
                                     ->preload()
                                     ->required(),
                                 
+                                TextInput::make('nombre')
+                                    ->label('Nombre de la Inspección')
+                                    ->required()
+                                    ->maxLength(255),
+                                
                                 Select::make('responsable_id')
-                                    ->label('Responsable / Inspector')
-                                    ->relationship('responsable', 'name')
+                                    ->label('Cargo Responsable / Inspector')
+                                    ->relationship('responsable', 'nombre')
                                     ->searchable()
                                     ->preload(),
 
@@ -86,13 +91,6 @@ class InspectionForm
                                     ->required(fn (Get $get) => $get('frecuencia') === 'eventual')
                                     ->visible(fn (Get $get) => $get('frecuencia') === 'eventual')
                                     ->columnSpanFull(),
-
-                                Select::make('estado')
-                                    ->label('Estado Actual')
-                                    ->options(ActivityState::class)
-                                    ->default(ActivityState::PROGRAMADO->value)
-                                    ->required()
-                                    ->live(),
                             ]),
                         
                         Placeholder::make('fechas_programadas_visual')

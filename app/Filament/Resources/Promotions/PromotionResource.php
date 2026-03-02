@@ -24,6 +24,12 @@ class PromotionResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Cultura y Formación';
 
+    protected static ?string $navigationLabel = 'Promociones';
+
+    protected static ?string $modelLabel = 'Promoción';
+
+    protected static ?string $pluralModelLabel = 'Promociones';
+
     protected static ?string $recordTitleAttribute = 'nombre_campana';
 
     public static function form(Schema $schema): Schema

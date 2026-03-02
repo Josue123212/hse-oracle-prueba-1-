@@ -17,7 +17,6 @@ class Inspection extends Model
         'nombre',
         'descripcion',
         'fecha_programada',
-        'estado',
         'resultado',
         'responsable_id',
         'location_id',
@@ -34,7 +33,6 @@ class Inspection extends Model
     protected $casts = [
         'fecha_programada' => 'date',
         'proxima_ejecucion' => 'date',
-        'estado' => ActivityState::class,
     ];
 
     protected static function booted()
@@ -66,7 +64,7 @@ class Inspection extends Model
 
     public function responsable(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'responsable_id');
+        return $this->belongsTo(Position::class, 'responsable_id');
     }
 
     public function location(): BelongsTo

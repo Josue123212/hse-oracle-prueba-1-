@@ -25,6 +25,11 @@ class OperationalControlForm
                     ->preload()
                     ->label('Programa'),
 
+                Select::make('responsable_id')
+                    ->options(\App\Models\Position::pluck('nombre', 'id'))
+                    ->searchable()
+                    ->label('Cargo Responsable'),
+
                 TextInput::make('nombre_proceso')
                     ->required()
                     ->maxLength(255)
@@ -161,24 +166,10 @@ class OperationalControlForm
                     ->columnSpanFull(),
 
                 Select::make('responsable_id')
-                    ->relationship('responsable', 'name')
+                    ->relationship('responsable', 'nombre')
                     ->searchable()
                     ->preload()
                     ->label('Responsable'),
-
-                Select::make('estado')
-                    ->options(ActivityState::class)
-                    ->required()
-                    ->default(ActivityState::PROGRAMADO->value)
-                    ->live(),
-
-                Select::make('resultado')
-                    ->label('Resultado')
-                    ->options([
-                        'conforme' => 'Conforme',
-                        'no_conforme' => 'No Conforme',
-                    ])
-                    ->visible(fn (Get $get) => $get('estado') === ActivityState::EJECUTADO->value),
             ]);
     }
 }

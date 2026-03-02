@@ -38,8 +38,8 @@ class AuditForm
                                     ->maxLength(255),
 
                                 Select::make('auditor_id')
-                                    ->label('Auditor Responsable')
-                                    ->relationship('auditor', 'name')
+                                    ->label('Supervisor Auditor')
+                                    ->relationship('auditor', 'nombre')
                                     ->searchable()
                                     ->preload(),
                             ]),
@@ -57,22 +57,6 @@ class AuditForm
                                     ->label('Fecha Inicial')
                                     ->required()
                                     ->live(),
-
-                                Select::make('estado')
-                                    ->label('Estado')
-                                    ->options(ActivityState::class)
-                                    ->default(ActivityState::PROGRAMADO->value)
-                                    ->required()
-                                    ->live(),
-
-                                Select::make('resultado')
-                                    ->label('Resultado Global')
-                                    ->options([
-                                        'conforme' => 'Conforme',
-                                        'no_conforme' => 'No Conforme',
-                                        'observado' => 'Con Observaciones',
-                                    ])
-                                    ->visible(fn (Get $get) => $get('estado') === ActivityState::EJECUTADO->value),
 
                                 Select::make('frecuencia')
                                     ->label('Frecuencia')

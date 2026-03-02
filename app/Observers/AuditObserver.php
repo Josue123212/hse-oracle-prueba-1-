@@ -8,22 +8,6 @@ use App\Enums\ActivityState;
 
 class AuditObserver
 {
-    private function mapStatus(string|ActivityState $status): string
-    {
-        $statusValue = $status instanceof ActivityState ? $status->value : $status;
-
-        return match ($statusValue) {
-            ActivityState::PROGRAMADO->value => ActivityState::PROGRAMADO->value,
-            ActivityState::EN_PROCESO->value => ActivityState::EN_PROCESO->value,
-            ActivityState::EJECUTADO->value => ActivityState::EJECUTADO->value,
-            ActivityState::NO_CUMPLIO->value => ActivityState::NO_CUMPLIO->value,
-            // Legacy mappings
-            'vencido', 'cancelado' => ActivityState::NO_CUMPLIO->value,
-            'reprogramado' => ActivityState::PROGRAMADO->value,
-            default => ActivityState::PROGRAMADO->value,
-        };
-    }
-
     /**
      * Handle the Audit "created" event.
      */
@@ -31,13 +15,13 @@ class AuditObserver
     {
         // Si la auditoría no tiene una actividad asociada, crear una
         if (!$audit->activity_id) {
-            $activity = Activity::create([
+            $activity = new Activity([
                 'program_id' => $audit->program_id,
                 'nombre' => $audit->nombre,
                 'descripcion' => $audit->descripcion,
                 'tipo' => 'auditoria', // Corregido a minúsculas
                 'frecuencia' => $audit->frecuencia ?? 'unico', // Cambiado a 'unico' por defecto
-                'estado' => $this->mapStatus($audit->estado),
+                'estado' => ActivityState::PROGRAMADO,
                 'unidad_medida' => 'Porcentaje', // Valor por defecto
                 'fecha_inicio' => $audit->fecha_programada,
                 'fecha_fin' => $audit->fecha_vencimiento ?? $audit->fecha_programada,
@@ -45,6 +29,8 @@ class AuditObserver
                 'es_obligatoria' => true, // Asumimos que las auditorías son obligatorias
                 'meta' => 100, // Valor por defecto
             ]);
+            $activity->is_creating_from_ref = true;
+            $activity->save();
 
             // Actualizar la auditoría con el ID de la actividad
             // Usamos quiet() para evitar disparar el evento updated y causar un bucle
@@ -66,7 +52,6 @@ class AuditObserver
                 $activity->update([
                     'nombre' => $audit->nombre,
                     'descripcion' => $audit->descripcion,
-                    'estado' => $this->mapStatus($audit->estado),
                     'frecuencia' => $audit->frecuencia ?? $activity->frecuencia,
                     'fecha_inicio' => $audit->fecha_programada,
                     'fecha_fin' => $activity->fecha_fin,

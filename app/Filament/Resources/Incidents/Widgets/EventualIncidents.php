@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources\Incidents\Widgets;
 
-use App\Models\Incident;
+use App\Models\Activity;
+use App\Models\ActivityExecution;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Filament\Actions\Action;
+use Livewire\Attributes\On;
 
 class EventualIncidents extends BaseWidget
 {
@@ -14,87 +16,121 @@ class EventualIncidents extends BaseWidget
 
     protected static ?int $sort = 2;
 
-    public static function canView(): bool
+    protected static ?string $heading = 'Actividades Eventuales - Incidentes';
+
+    protected ?string $pollingInterval = '30s';
+
+    #[On('activity-executed')]
+    public function refresh(): void
     {
-        return Incident::query()
-            ->whereIn('estado', ['programado', 'en_proceso'])
-            ->whereHas('activity', function ($q) {
-                $q->where('frecuencia', 'eventual');
-            })->exists();
     }
 
     public function table(Table $table): Table
     {
         return $table
             ->query(
-                Incident::query()
-                    ->whereIn('estado', ['programado', 'en_proceso'])
-                    ->whereHas('activity', function ($q) {
-                        $q->where('frecuencia', 'eventual');
+                Activity::query()
+                    ->where(function ($query) {
+                        $query->where('tipo', 'incidente')
+                              ->orWhereHas('incident');
                     })
+                    ->where('frecuencia', 'eventual')
             )
-            ->heading('Incidentes Eventuales / No Programados')
             ->columns([
-                Tables\Columns\TextColumn::make('program.nombre')
-                    ->label('Programa')
-                    ->badge()
-                    ->color('gray'),
-                Tables\Columns\TextColumn::make('titulo')
-                    ->label('Incidente')
+                Tables\Columns\TextColumn::make('nombre')
+                    ->label('Actividad / Incidente')
+                    ->description(fn (Activity $record) => $record->incident ? "Ocurrió: {$record->incident->fecha_ocurrencia->format('d/m/Y')}" : ($record->descripcion ?? 'Sin descripción'))
                     ->weight('bold')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('activity.frecuencia')
-                    ->label('Frecuencia')
-                    ->badge()
-                    ->color('warning')
-                    ->formatStateUsing(fn ($state) => ucfirst($state)),
-                Tables\Columns\TextColumn::make('fecha_ocurrencia')
-                    ->label('Fecha Ocurrencia')
-                    ->date('d/m/Y'),
-                Tables\Columns\TextColumn::make('estado')
-                    ->label('Estado')
-                    ->badge(),
+                    ->wrap(),
             ])
             ->actions([
                 Action::make('iniciar')
-                    ->label('Iniciar')
-                    ->icon('heroicon-o-play')
-                    ->color('success')
+                    ->label(fn (Activity $record) => $this->hasExecutedToday($record) ? 'Completado Hoy' : 'Iniciar')
+                    ->icon(fn (Activity $record) => $this->hasExecutedToday($record) ? 'heroicon-o-check-circle' : 'heroicon-o-play')
+                    ->color(fn (Activity $record) => $this->hasExecutedToday($record) ? 'gray' : 'success')
+                    ->disabled(fn (Activity $record) => $this->hasExecutedToday($record))
                     ->button()
-                    ->requiresConfirmation()
-                    ->modalHeading('Iniciar Gestión de Incidente')
-                    ->modalDescription('¿Estás seguro de que deseas iniciar la gestión de este incidente? El estado cambiará a "En Proceso" o "Ejecutado".')
-                    ->modalSubmitActionLabel('Sí, iniciar')
-                    ->action(function ($record) {
-                        if ($record->activity) {
-                            $record->activity->increment('ejecuciones_realizadas');
+                    ->form([
+                        \Filament\Forms\Components\Textarea::make('observacion')
+                            ->label('Informe de Investigación')
+                            ->rows(3)
+                            ->columnSpanFull(),
+                        \Filament\Forms\Components\FileUpload::make('evidencia')
+                            ->label('Evidencia (Archivo)')
+                            ->disk('public') // Cambiamos a disco local temporalmente
+                            ->directory('temp-uploads') // Directorio temporal local
+                            ->visibility('private')
+                            ->columnSpanFull(),
+
+                        \Filament\Schemas\Components\Section::make('Detalles de la Investigación')
+                            ->schema([
+                                \Filament\Schemas\Components\Grid::make(2)
+                                    ->schema([
+                                        \Filament\Forms\Components\Textarea::make('data.causa_raiz')
+                                            ->label('Causa Raíz'),
+                                        \Filament\Forms\Components\Textarea::make('data.acciones_correctivas')
+                                            ->label('Acciones Correctivas'),
+                                    ]),
+                            ]),
+                    ])
+                    ->modalHeading('Ejecutar Investigación Eventual')
+                    ->modalSubmitActionLabel('Guardar')
+                    ->action(function (Activity $record, array $data) {
+                        $evidenciaLocalPath = $data['evidencia'] ?? null;
+                        $finalDrivePath = null;
+                        
+                        if ($evidenciaLocalPath) {
+                            $localDisk = \Illuminate\Support\Facades\Storage::disk('public');
+                            $googleDisk = \Illuminate\Support\Facades\Storage::disk('google');
                             
-                            if ($record->activity->ejecuciones_realizadas >= $record->activity->veces_al_anio) {
-                                $record->activity->update(['estado' => 'ejecutado', 'fecha_fin' => now()]);
-                                $record->update([
-                                    'estado' => 'ejecutado',
-                                ]);
-                                $message = 'Incidente procesado (Meta alcanzada)';
-                            } else {
-                                $record->activity->update(['estado' => 'en_proceso']);
-                                $record->update([
-                                    'estado' => 'en_proceso',
-                                ]);
-                                $message = "Acción registrada.";
+                            if ($localDisk->exists($evidenciaLocalPath)) {
+                                $targetDirectory = \App\Services\DrivePathGenerator::generate($record);
+                                $fileName = basename($evidenciaLocalPath);
+                                $targetPath = trim($targetDirectory, '/') . '/' . $fileName;
+                                
+                                try {
+                                    if (!$googleDisk->exists($targetDirectory)) {
+                                         $googleDisk->makeDirectory($targetDirectory);
+                                    }
+                                    
+                                    $fileContents = $localDisk->get($evidenciaLocalPath);
+                                    $googleDisk->put($targetPath, $fileContents);
+                                    
+                                    if ($googleDisk->exists($targetPath)) {
+                                        $finalDrivePath = $targetPath;
+                                        $localDisk->delete($evidenciaLocalPath);
+                                    }
+                                } catch (\Exception $e) {
+                                    \Illuminate\Support\Facades\Log::error("Error moviendo archivo: " . $e->getMessage());
+                                }
                             }
-                        } else {
-                            $record->update([
-                                'estado' => 'en_proceso',
-                            ]);
-                            $message = 'Incidente pasado a investigación';
                         }
+
+                        ActivityExecution::create([
+                            'activity_id' => $record->id,
+                            'observacion' => $data['observacion'] ?? null,
+                            'evidencia' => $finalDrivePath,
+                            'estado' => \App\Enums\ActivityState::EJECUTADO,
+                            'fecha_ejecucion_real' => now(),
+                            'fecha_programada' => null,
+                            'data' => $data['data'] ?? [],
+                        ]);
                         
                         \Filament\Notifications\Notification::make()
-                            ->title($message)
+                            ->title('Investigación Eventual Registrada')
                             ->success()
                             ->send();
+
+                        $this->dispatch('activity-executed');
                     }),
             ])
             ->paginated(false);
+    }
+
+    protected function hasExecutedToday(Activity $activity): bool
+    {
+        return $activity->executions()
+            ->whereDate('created_at', now())
+            ->exists();
     }
 }

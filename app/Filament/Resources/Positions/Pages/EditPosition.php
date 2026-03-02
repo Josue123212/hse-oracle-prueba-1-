@@ -14,8 +14,20 @@ class EditPosition extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            ViewAction::make(),
-            DeleteAction::make(),
+            \Filament\Actions\ViewAction::make(),
+            \Filament\Actions\DeleteAction::make(),
         ];
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        if (isset($data['tipo_firma']) && $data['tipo_firma'] === 'digital') {
+            $data['firma'] = $data['firma_digital'] ?? null;
+        }
+
+        unset($data['tipo_firma']);
+        unset($data['firma_digital']);
+
+        return $data;
     }
 }

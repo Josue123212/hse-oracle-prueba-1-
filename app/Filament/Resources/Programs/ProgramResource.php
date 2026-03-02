@@ -27,6 +27,12 @@ class ProgramResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-list';
 
+    protected static ?string $navigationLabel = 'Programas';
+
+    protected static ?string $modelLabel = 'Programa';
+
+    protected static ?string $pluralModelLabel = 'Programas';
+
     protected static ?string $recordTitleAttribute = 'nombre';
 
     protected static string|UnitEnum|null $navigationGroup = 'Gestión de Programas';

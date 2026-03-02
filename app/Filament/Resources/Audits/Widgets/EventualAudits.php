@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources\Audits\Widgets;
 
-use App\Models\Audit;
+use App\Models\Activity;
+use App\Models\ActivityExecution;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Filament\Actions\Action;
+use Livewire\Attributes\On;
 
 class EventualAudits extends BaseWidget
 {
@@ -14,109 +16,123 @@ class EventualAudits extends BaseWidget
 
     protected static ?int $sort = 2;
 
-    public static function canView(): bool
+    protected static ?string $heading = 'Actividades Eventuales - Auditorías';
+
+    protected ?string $pollingInterval = '30s';
+
+    #[On('activity-executed')]
+    public function refresh(): void
     {
-        return Audit::query()
-            ->whereIn('estado', ['programado', 'en_proceso'])
-            ->whereHas('activity', function ($q) {
-                $q->where('frecuencia', 'eventual');
-            })->exists();
     }
 
     public function table(Table $table): Table
     {
         return $table
             ->query(
-                Audit::query()
-                    ->whereIn('estado', ['programado', 'en_proceso'])
-                    ->whereHas('activity', function ($q) {
-                        $q->where('frecuencia', 'eventual');
-                    })
+                Activity::query()
+                    ->where('tipo', 'auditoria')
+                    ->where('frecuencia', 'eventual')
             )
-            ->heading('Auditorías Eventuales / No Programadas')
             ->columns([
-                Tables\Columns\TextColumn::make('program.nombre')
-                    ->label('Programa')
-                    ->badge()
-                    ->color('gray'),
                 Tables\Columns\TextColumn::make('nombre')
-                    ->label('Auditoría')
+                    ->label('Actividad')
+                    ->description(fn (Activity $record) => $record->descripcion ?? 'Sin descripción')
                     ->weight('bold')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('auditor.name')
-                    ->label('Auditor'),
-                Tables\Columns\TextColumn::make('activity.frecuencia')
-                    ->label('Frecuencia')
-                    ->badge()
-                    ->color('warning')
-                    ->formatStateUsing(fn ($state) => ucfirst($state)),
-                Tables\Columns\TextColumn::make('fecha_programada')
-                    ->label('Fecha Programada')
-                    ->date('d/m/Y'),
-                Tables\Columns\TextColumn::make('progreso')
-                    ->label('Progreso')
-                    ->state(function ($record): string {
-                        if ($record->activity) {
-                            return "{$record->activity->ejecuciones_realizadas} / {$record->activity->veces_al_anio}";
-                        }
-                        return "N/A";
-                    })
-                    ->badge()
-                    ->color('info'),
-                Tables\Columns\TextColumn::make('estado')
-                    ->label('Estado')
-                    ->badge(),
+                    ->wrap(),
             ])
             ->actions([
                 Action::make('iniciar')
-                    ->label(function ($record) {
-                        $progress = "N/A";
-                        if ($record->activity) {
-                            $progress = "{$record->activity->ejecuciones_realizadas}/{$record->activity->veces_al_anio}";
-                        }
-                        return "Iniciar ($progress)";
-                    })
-                    ->icon('heroicon-o-play')
-                    ->color('success')
+                    ->label(fn (Activity $record) => $this->hasExecutedToday($record) ? 'Completado Hoy' : 'Iniciar')
+                    ->icon(fn (Activity $record) => $this->hasExecutedToday($record) ? 'heroicon-o-check-circle' : 'heroicon-o-play')
+                    ->color(fn (Activity $record) => $this->hasExecutedToday($record) ? 'gray' : 'success')
+                    ->disabled(fn (Activity $record) => $this->hasExecutedToday($record))
                     ->button()
-                    ->requiresConfirmation()
-                    ->modalHeading('Iniciar Auditoría')
-                    ->modalDescription(function ($record) {
-                        $progress = "";
-                        if ($record->activity) {
-                            $progress = "Progreso actual: {$record->activity->ejecuciones_realizadas}/{$record->activity->veces_al_anio}.";
-                        }
-                        return "¿Estás seguro de que deseas iniciar esta auditoría? $progress El estado cambiará a 'Ejecutado' o 'En Proceso' según corresponda.";
-                    })
-                    ->modalSubmitActionLabel('Sí, iniciar')
-                    ->action(function ($record) {
-                        if ($record->activity) {
-                            $record->activity->increment('ejecuciones_realizadas');
-                            
-                            if ($record->activity->ejecuciones_realizadas >= $record->activity->veces_al_anio) {
-                                $record->activity->update(['estado' => 'ejecutado', 'fecha_fin' => now()]);
-                                $record->update([
-                                    'estado' => 'ejecutado',
-                                ]);
-                                $message = 'Auditoría completada (Meta alcanzada)';
-                            } else {
-                                $record->activity->update(['estado' => 'en_proceso']);
-                                $record->update([
-                                    'estado' => 'en_proceso',
-                                ]);
-                                $message = "Ejecución registrada. Progreso: {$record->activity->ejecuciones_realizadas}/{$record->activity->veces_al_anio}";
+                    ->form([
+                        \Filament\Forms\Components\Textarea::make('observacion')
+                            ->label('Observaciones')
+                            ->rows(3)
+                            ->columnSpanFull(),
+                        \Filament\Forms\Components\FileUpload::make('evidencia')
+                            ->label('Evidencia (Archivo)')
+                            ->disk('public') // Cambiamos a disco local temporalmente
+                            ->directory('temp-uploads') // Directorio temporal local
+                            ->visibility('private')
+                            ->columnSpanFull(),
+
+                        \Filament\Schemas\Components\Section::make('Detalles de Auditoría')
+                            ->schema([
+                                \Filament\Schemas\Components\Grid::make(2)
+                                    ->schema([
+                                        \Filament\Forms\Components\Select::make('data.auditor_id')
+                                            ->label('Supervisor')
+                                            ->options(\App\Models\Supervisor::pluck('nombre', 'id'))
+                                            ->searchable()
+                                            ->preload(),
+                                        \Filament\Forms\Components\Textarea::make('data.hallazgos')
+                                            ->label('Hallazgos'),
+                                    ]),
+                            ]),
+                    ])
+                    ->modalHeading('Ejecutar Auditoría Eventual')
+                    ->modalSubmitActionLabel('Guardar')
+                    ->action(function (Activity $record, array $data) {
+                        \Illuminate\Support\Facades\Log::info('--- INICIO GUARDADO AUDITORIA EVENTUAL ---');
+                        
+                        $evidenciaLocalPath = $data['evidencia'] ?? null;
+                        $finalDrivePath = null;
+                        
+                        if ($evidenciaLocalPath) {
+                            $localDisk = \Illuminate\Support\Facades\Storage::disk('public');
+                            $googleDisk = \Illuminate\Support\Facades\Storage::disk('google');
+
+                            if ($localDisk->exists($evidenciaLocalPath)) {
+                                $targetDirectory = \App\Services\DrivePathGenerator::generate($record);
+                                $fileName = basename($evidenciaLocalPath);
+                                $targetPath = trim($targetDirectory, '/') . '/' . $fileName;
+                                
+                                try {
+                                    if (!$googleDisk->exists($targetDirectory)) {
+                                         $googleDisk->makeDirectory($targetDirectory);
+                                    }
+                                    
+                                    $fileContents = $localDisk->get($evidenciaLocalPath);
+                                    $googleDisk->put($targetPath, $fileContents);
+                                    
+                                    if ($googleDisk->exists($targetPath)) {
+                                        $finalDrivePath = $targetPath;
+                                        $localDisk->delete($evidenciaLocalPath);
+                                    }
+                                } catch (\Exception $e) {
+                                    \Illuminate\Support\Facades\Log::error("Error moviendo archivo: " . $e->getMessage());
+                                }
                             }
-                        } else {
-                            $record->update(['estado' => 'ejecutado']);
-                            $message = 'Auditoría iniciada';
                         }
+
+                        ActivityExecution::create([
+                            'activity_id' => $record->id,
+                            'observacion' => $data['observacion'] ?? null,
+                            'evidencia' => $finalDrivePath ? [$finalDrivePath] : null,
+                            'estado' => \App\Enums\ActivityState::EJECUTADO,
+                            'fecha_programada' => now(),
+                            'fecha_ejecucion_real' => now(),
+                            'data' => $data['data'] ?? [],
+                        ]);
                         
                         \Filament\Notifications\Notification::make()
-                            ->title($message)
+                            ->title('Auditoría Eventual Registrada')
                             ->success()
                             ->send();
+                        \Illuminate\Support\Facades\Log::info('--- FIN GUARDADO AUDITORIA EVENTUAL ---');
+                        $this->dispatch('activity-executed');
                     }),
             ])
             ->paginated(false);
+    }
+
+    protected function hasExecutedToday(Activity $activity): bool
+    {
+        return $activity->executions()
+            ->whereDate('created_at', now())
+            ->exists();
     }
 }

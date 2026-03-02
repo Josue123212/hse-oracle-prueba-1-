@@ -32,6 +32,12 @@ class PromotionForm
                         $set('activity_id', null);
                     }),
 
+                Select::make('responsable_id')
+                    ->relationship('responsable', 'nombre')
+                    ->searchable()
+                    ->preload()
+                    ->label('Cargo Responsable'),
+
                 Select::make('activity_id')
                     ->label('Actividad Relacionada')
                     ->options(fn (Get $get) => Activity::where('program_id', $get('program_id'))->pluck('nombre', 'id'))
@@ -204,15 +210,10 @@ class PromotionForm
                     ->label('Fecha de Fin'),
 
                 Select::make('responsable_id')
-                    ->relationship('responsable', 'name')
+                    ->relationship('responsable', 'nombre')
                     ->searchable()
                     ->preload()
                     ->label('Responsable'),
-
-                Select::make('estado')
-                    ->options(ActivityState::class)
-                    ->required()
-                    ->default(ActivityState::PROGRAMADO->value),
 
                 Textarea::make('descripcion')
                     ->label('Descripción')

@@ -25,6 +25,12 @@ class AuditResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
+    protected static ?string $navigationLabel = 'Auditorías';
+
+    protected static ?string $modelLabel = 'Auditoría';
+
+    protected static ?string $pluralModelLabel = 'Auditorías';
+
     protected static ?string $recordTitleAttribute = 'nombre';
 
     protected static string|UnitEnum|null $navigationGroup = 'Operaciones y Control';

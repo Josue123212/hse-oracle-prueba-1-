@@ -19,7 +19,13 @@ class NotificationResource extends Resource
 {
     protected static ?string $model = Notification::class;
 
-    protected static string|BackedEnum|null $navigationIcon = null;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-bell';
+
+    protected static ?string $navigationLabel = 'Notificaciones';
+
+    protected static ?string $modelLabel = 'Notificación';
+
+    protected static ?string $pluralModelLabel = 'Notificaciones';
 
     protected static ?string $recordTitleAttribute = 'titulo';
 

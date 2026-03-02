@@ -23,9 +23,9 @@ class AuditInfolist
                                 TextEntry::make('nombre')
                                     ->label('Nombre de la Auditoría'),
 
-                                TextEntry::make('auditor.name')
-                                    ->label('Auditor Responsable')
-                                    ->placeholder('Sin asignar'),
+                                TextEntry::make('auditor.nombre')
+                                    ->label('Supervisor Auditor')
+                                    ->icon('heroicon-m-user'),
                             ]),
                         TextEntry::make('descripcion')
                             ->label('Descripción')

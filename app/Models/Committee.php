@@ -17,7 +17,6 @@ class Committee extends Model
         'fecha_programada' => 'date',
         'fecha_realizada' => 'date',
         'proxima_ejecucion' => 'date',
-        'estado' => ActivityState::class,
     ];
 
     protected static function booted()
@@ -49,6 +48,6 @@ class Committee extends Model
 
     public function responsable(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'responsable_id');
+        return $this->belongsTo(Position::class, 'responsable_id');
     }
 }

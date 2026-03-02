@@ -5,7 +5,7 @@ return [
 
     'brand' => [
         'logo_path' => env('HSE_UI_LOGO_PATH', 'Logo-2.png'),
-        'favicon_path' => env('HSE_UI_FAVICON_PATH', 'oracle-logo.png'),
+        'favicon_path' => env('HSE_UI_FAVICON_PATH', 'logo-pestana.png'),
         'alt' => env('HSE_UI_BRAND_ALT', 'ORACLE PERU S.A.C.'),
         'tagline' => env('HSE_UI_BRAND_TAGLINE', 'Gestión HSE'),
     ],

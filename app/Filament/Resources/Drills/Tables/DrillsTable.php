@@ -18,6 +18,11 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Hidden;
 use Filament\Notifications\Notification;
 use App\Models\ActivityExecution;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Forms\Components\Placeholder;
 
 class DrillsTable
 {
@@ -45,6 +50,10 @@ class DrillsTable
                     ->label('Veces/Año')
                     ->alignCenter()
                     ->sortable(),
+
+                TextColumn::make('responsable.nombre')
+                    ->label('Cargo Responsable')
+                    ->sortable(),
             ])
             ->filters([
                 //
@@ -54,51 +63,123 @@ class DrillsTable
                     ->label('Gestionar Ejecuciones')
                     ->icon('heroicon-m-calendar-days')
                     ->color('info')
-                    ->fillForm(fn ($record): array => [
-                        'executions_data' => ($record->activity ? $record->activity->executions : collect())->map(fn ($execution) => [
-                            'id' => $execution->id,
-                            'fecha_programada' => $execution->fecha_programada->format('Y-m-d'),
-                            'estado' => $execution->estado,
-                            'fecha_ejecucion_real' => $execution->fecha_ejecucion_real?->format('Y-m-d'),
-                            'observacion' => $execution->observacion,
-                        ])->toArray(),
-                    ])
-                    ->form([
-                        Repeater::make('executions_data')
-                            ->label('Cronograma de Ejecuciones')
-                            ->addable(false)
-                            ->deletable(false)
-                            ->reorderable(false)
-                            ->columns(3)
-                            ->schema([
-                                Hidden::make('id'),
-                                TextInput::make('fecha_programada')
+                    ->form(function ($record) {
+                        $activity = $record->activity;
+                        if (!$activity) {
+                            return [
+                                Placeholder::make('no_activity')
+                                    ->content('No hay actividad asociada a este registro.')
+                            ];
+                        }
+                        $executions = $activity->executions()->orderBy('fecha_programada')->get();
+
+                        // Campos comunes para reutilizar
+                        $getFields = function ($execution, $prefix = '') {
+                            $fieldName = fn($name) => $prefix ? "{$prefix}.{$name}" : $name;
+                            $getData = fn($key) => $execution->data[$key] ?? null;
+                            
+                            $fields = [
+                                Hidden::make($fieldName('id'))
+                                    ->default($execution->id),
+                                    
+                                DatePicker::make($fieldName('fecha_programada'))
                                     ->label('Fecha Programada')
+                                    ->default($execution->fecha_programada)
                                     ->disabled()
                                     ->required(),
-                                Select::make('estado')
-                                    ->options([
-                                        'pendiente' => 'Pendiente',
-                                        'ejecutado' => 'Ejecutado',
-                                        'no_cumplio' => 'No Cumplió',
-                                        'vencido' => 'Vencido',
-                                    ])
+                                    
+                                Select::make($fieldName('estado'))
+                                    ->label('Estado')
+                                    ->options(\App\Enums\ActivityState::class)
+                                    ->default($execution->estado)
                                     ->required(),
-                                DatePicker::make('fecha_ejecucion_real')
-                                    ->label('Fecha Real'),
-                                Textarea::make('observacion')
+                                    
+                                DatePicker::make($fieldName('fecha_ejecucion_real'))
+                                    ->label('Fecha Real')
+                                    ->default($execution->fecha_ejecucion_real),
+                                    
+                                Textarea::make($fieldName('observacion'))
                                     ->label('Observaciones')
+                                    ->default($execution->observacion)
                                     ->rows(2)
                                     ->columnSpanFull(),
-                            ])
-                    ])
-                    ->action(function (array $data): void {
-                        foreach ($data['executions_data'] as $item) {
-                            ActivityExecution::where('id', $item['id'])->update([
+                            ];
+
+                            // Campos dinámicos de Simulacro
+                            $fields[] = Section::make('Detalles del Simulacro')
+                                ->schema([
+                                    Grid::make(2)
+                                        ->schema([
+                                            TextInput::make($fieldName('data.participantes_count'))
+                                                ->label('Participantes')
+                                                ->numeric()
+                                                ->default($getData('participantes_count')),
+                                            Textarea::make($fieldName('data.escenario'))
+                                                ->label('Escenario')
+                                                ->default($getData('escenario'))
+                                                ->rows(2),
+                                            Textarea::make($fieldName('data.evaluacion'))
+                                                ->label('Evaluación/Resultados')
+                                                ->default($getData('evaluacion'))
+                                                ->rows(2)
+                                                ->columnSpanFull(),
+                                        ]),
+                                ]);
+
+                            return $fields;
+                        };
+
+                        // Caso 1: Una sola ejecución (o ninguna)
+                        if ($executions->count() <= 1) {
+                            $execution = $executions->first();
+                            if (!$execution) {
+                                return [
+                                    Placeholder::make('no_data')
+                                        ->content('No hay ejecuciones programadas para esta actividad.')
+                                ];
+                            }
+                            
+                            return $getFields($execution, 'single_execution');
+                        }
+
+                        // Caso 2: Múltiples ejecuciones (Tabs/Burbujas)
+                        $tabs = [];
+                        foreach ($executions as $execution) {
+                            $monthName = \Carbon\Carbon::parse($execution->fecha_programada)->locale('es')->translatedFormat('M');
+                            $day = \Carbon\Carbon::parse($execution->fecha_programada)->format('d');
+                            
+                            $tabs[] = Tab::make("{$monthName} {$day}")
+                                ->schema($getFields($execution, "executions.{$execution->id}"));
+                        }
+
+                        return [
+                            Tabs::make('Ejecuciones')
+                                ->tabs($tabs)
+                                ->persistTabInQueryString('execution_tab')
+                        ];
+                    })
+                    ->action(function (array $data) {
+                        $saveExecution = function ($id, $item) {
+                            $extraData = $item['data'] ?? [];
+
+                            ActivityExecution::where('id', $id)->update([
                                 'estado' => $item['estado'],
                                 'fecha_ejecucion_real' => $item['fecha_ejecucion_real'],
                                 'observacion' => $item['observacion'],
+                                'data' => $extraData,
                             ]);
+                        };
+
+                        // Guardar Caso 1
+                        if (isset($data['single_execution'])) {
+                            $item = $data['single_execution'];
+                            $saveExecution($item['id'], $item);
+                        }
+                        // Guardar Caso 2
+                        elseif (isset($data['executions'])) {
+                            foreach ($data['executions'] as $id => $item) {
+                                $saveExecution($id, $item);
+                            }
                         }
                         
                         Notification::make()
@@ -116,6 +197,7 @@ class DrillsTable
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 }

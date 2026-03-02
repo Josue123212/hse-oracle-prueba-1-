@@ -17,7 +17,6 @@ class Drill extends Model
         'fecha_programada' => 'date',
         'fecha_ejecucion' => 'date',
         'proxima_ejecucion' => 'date',
-        'estado' => ActivityState::class,
     ];
 
     protected static function booted()
@@ -45,5 +44,10 @@ class Drill extends Model
     public function activity(): BelongsTo
     {
         return $this->belongsTo(Activity::class);
+    }
+
+    public function responsable(): BelongsTo
+    {
+        return $this->belongsTo(Position::class, 'responsable_id');
     }
 }

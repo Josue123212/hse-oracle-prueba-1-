@@ -22,6 +22,7 @@ class ActivityExecution extends Model
         'fecha_programada' => 'date',
         'fecha_ejecucion_real' => 'date',
         'data' => 'array',
+        'evidencia' => 'array',
         'estado' => ActivityState::class,
     ];
 

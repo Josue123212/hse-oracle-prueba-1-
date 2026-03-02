@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Activity extends Model
 {
+    public bool $is_creating_from_ref = false;
+
     protected static function booted(): void
     {
         static::saved(function (Activity $activity) {
@@ -24,7 +26,101 @@ class Activity extends Model
         
         static::created(function (Activity $activity) {
             $activity->regenerateExecutions();
+            if (!$activity->is_creating_from_ref) {
+                $activity->createLinkedModel();
+            }
         });
+    }
+
+    public function createLinkedModel(): void
+    {
+        $typeToModel = [
+            'auditoria' => Audit::class,
+            'comite' => Committee::class,
+            'documentacion' => Documentation::class,
+            'simulacro' => Drill::class,
+            'incidente' => Incident::class,
+            'inspeccion' => Inspection::class,
+            'control_operacional' => OperationalControl::class,
+            'promocion' => Promotion::class,
+            'capacitacion' => Training::class,
+        ];
+
+        if (!isset($typeToModel[$this->tipo])) {
+            return;
+        }
+
+        $modelClass = $typeToModel[$this->tipo];
+        $attributes = $this->getModelAttributes($modelClass);
+
+        $model = new $modelClass($attributes);
+        $model->activity_id = $this->id;
+        $model->saveQuietly();
+    }
+
+    protected function getModelAttributes(string $modelClass): array
+    {
+        $modelInstance = new $modelClass();
+        $fillable = $modelInstance->getFillable();
+        $attributes = [];
+
+        foreach ($fillable as $field) {
+            switch ($field) {
+                case 'nombre':
+                case 'tema':
+                case 'titulo':
+                case 'nombre_proceso':
+                case 'nombre_campana':
+                    $attributes[$field] = $this->nombre;
+                    break;
+                case 'descripcion':
+                case 'observaciones':
+                case 'tema_principal':
+                    $attributes[$field] = $this->descripcion ?? 'Sin descripción';
+                    break;
+                case 'program_id':
+                    $attributes[$field] = $this->program_id;
+                    break;
+                case 'responsable_id':
+                case 'auditor_id':
+                    $attributes[$field] = $this->responsable_id;
+                    break;
+                case 'location_id':
+                    $attributes[$field] = $this->location_id;
+                    break;
+                case 'frecuencia':
+                    $attributes[$field] = $this->frecuencia;
+                    break;
+                case 'veces_al_anio':
+                    $attributes[$field] = $this->veces_al_anio;
+                    break;
+                case 'ejecuciones_realizadas':
+                    $attributes[$field] = $this->ejecuciones_realizadas;
+                    break;
+                case 'detalle_frecuencia':
+                    $attributes[$field] = $this->detalle_frecuencia;
+                    break;
+                case 'fecha_programada':
+                case 'fecha_ocurrencia':
+                    // Si no hay fecha de inicio, usamos la fecha actual
+                    $attributes[$field] = $this->fecha_inicio ?? now();
+                    break;
+                case 'fecha_vencimiento':
+                case 'fecha_realizada':
+                case 'fecha_aprobacion':
+                case 'fecha_ejecucion':
+                    // Si no hay fecha de fin, usamos la fecha actual
+                    $attributes[$field] = $this->fecha_fin ?? now();
+                    break;
+                default:
+                    if ($this->getAttribute($field) !== null) {
+                        $attributes[$field] = $this->getAttribute($field);
+                    }
+                    break;
+            }
+        }
+
+        return $attributes;
     }
 
     protected $fillable = [
@@ -43,11 +139,12 @@ class Activity extends Model
         'meta',
         'unidad_medida',
         'es_obligatoria',
-        'estado',
         'fecha_inicio',
         'fecha_fin',
         'proxima_ejecucion',
         'responsable_id',
+        'responsable_delegado_id',
+        'apoyo',
     ];
 
     protected $casts = [
@@ -59,7 +156,6 @@ class Activity extends Model
         'fecha_inicio' => 'date',
         'fecha_fin' => 'date',
         'proxima_ejecucion' => 'date',
-        'estado' => ActivityState::class,
     ];
 
     public function program(): BelongsTo
@@ -74,7 +170,12 @@ class Activity extends Model
 
     public function responsable(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'responsable_id');
+        return $this->belongsTo(Position::class, 'responsable_id');
+    }
+
+    public function responsableDelegado(): BelongsTo
+    {
+        return $this->belongsTo(Position::class, 'responsable_delegado_id');
     }
 
     // Self-referencing relationships for Master-Detail pattern
@@ -257,16 +358,8 @@ class Activity extends Model
          $current = max(0, (int)$this->ejecuciones_realizadas);
 
          if ($current >= $total) {
-             $this->estado = 'ejecutado';
              if (!$this->fecha_fin) {
                  $this->fecha_fin = now();
-             }
-         } elseif ($current > 0) {
-             $this->estado = 'en_proceso';
-         } else {
-             // 0 progress -> programado (unless vencido)
-             if ($this->estado !== 'vencido') {
-                 $this->estado = 'programado';
              }
          }
          

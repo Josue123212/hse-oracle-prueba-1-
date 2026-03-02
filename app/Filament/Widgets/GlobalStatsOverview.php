@@ -2,13 +2,10 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Activity;
-use App\Models\Inspection;
-use App\Models\Training;
+use App\Models\ActivityExecution;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 
 use App\Enums\ActivityState;
 
@@ -23,27 +20,32 @@ class GlobalStatsOverview extends BaseWidget
             // Optimize: Use DB::select for faster aggregation or simpler Eloquent counts
             // Combining queries where possible
             
-            $inspectionStats = Inspection::selectRaw("
-                COUNT(*) as total,
-                SUM(CASE WHEN estado = '" . ActivityState::NO_CUMPLIO->value . "' THEN 1 ELSE 0 END) as vencidos,
-                SUM(CASE WHEN estado = '" . ActivityState::PROGRAMADO->value . "' THEN 1 ELSE 0 END) as programados,
-                SUM(CASE WHEN estado = '" . ActivityState::EJECUTADO->value . "' THEN 1 ELSE 0 END) as ejecutados
-            ")->first();
+            $inspectionStats = [
+                'total' => ActivityExecution::whereHas('activity', fn($q) => $q->where('tipo', 'inspeccion'))->count(),
+                'vencidos' => ActivityExecution::where('estado', ActivityState::NO_CUMPLIO)
+                    ->whereHas('activity', fn($q) => $q->where('tipo', 'inspeccion'))->count(),
+                'programados' => ActivityExecution::where('estado', ActivityState::PROGRAMADO)
+                    ->whereHas('activity', fn($q) => $q->where('tipo', 'inspeccion'))->count(),
+                'ejecutados' => ActivityExecution::where('estado', ActivityState::EJECUTADO)
+                    ->whereHas('activity', fn($q) => $q->where('tipo', 'inspeccion'))->count(),
+            ];
 
-            $trainingStats = Training::selectRaw("
-                COUNT(*) as total,
-                SUM(CASE WHEN estado = '" . ActivityState::PROGRAMADO->value . "' THEN 1 ELSE 0 END) as programados,
-                SUM(CASE WHEN estado = '" . ActivityState::EJECUTADO->value . "' THEN 1 ELSE 0 END) as ejecutados
-            ")->first();
+            $trainingStats = [
+                'total' => ActivityExecution::whereHas('activity', fn($q) => $q->where('tipo', 'capacitacion'))->count(),
+                'programados' => ActivityExecution::where('estado', ActivityState::PROGRAMADO)
+                    ->whereHas('activity', fn($q) => $q->where('tipo', 'capacitacion'))->count(),
+                'ejecutados' => ActivityExecution::where('estado', ActivityState::EJECUTADO)
+                    ->whereHas('activity', fn($q) => $q->where('tipo', 'capacitacion'))->count(),
+            ];
 
             return [
-                'inspeccionesVencidas' => $inspectionStats->vencidos ?? 0,
-                'inspeccionesPendientes' => $inspectionStats->programados ?? 0,
-                'capacitacionesPendientes' => $trainingStats->programados ?? 0,
-                'totalInspecciones' => $inspectionStats->total ?? 0,
-                'inspeccionesEjecutadas' => $inspectionStats->ejecutados ?? 0,
-                'totalTrainings' => $trainingStats->total ?? 0,
-                'trainingsEjecutadas' => $trainingStats->ejecutados ?? 0,
+                'inspeccionesVencidas' => $inspectionStats['vencidos'],
+                'inspeccionesPendientes' => $inspectionStats['programados'],
+                'capacitacionesPendientes' => $trainingStats['programados'],
+                'totalInspecciones' => $inspectionStats['total'],
+                'inspeccionesEjecutadas' => $inspectionStats['ejecutados'],
+                'totalTrainings' => $trainingStats['total'],
+                'trainingsEjecutadas' => $trainingStats['ejecutados'],
             ];
         });
 

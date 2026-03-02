@@ -24,6 +24,12 @@ class OperationalControlResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Operaciones y Control';
 
+    protected static ?string $navigationLabel = 'Controles Operacionales';
+
+    protected static ?string $modelLabel = 'Control Operacional';
+
+    protected static ?string $pluralModelLabel = 'Controles Operacionales';
+
     protected static ?string $recordTitleAttribute = 'nombre_proceso';
 
     public static function form(Schema $schema): Schema

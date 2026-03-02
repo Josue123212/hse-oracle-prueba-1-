@@ -3,17 +3,15 @@
 namespace App\Filament\Resources\Activities\Schemas;
 
 use Filament\Schemas\Schema;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
-
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TimePicker;
-use Filament\Schemas\Components\Utilities\Get;
-
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
 use Illuminate\Support\HtmlString;
@@ -23,7 +21,7 @@ class ActivityForm
 {
     public static function configure(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema->schema([
             Section::make('Información de la Actividad')
                 ->schema([
                     Grid::make(2)
@@ -66,17 +64,21 @@ class ActivityForm
                                 ->required(),
                             
                             Select::make('responsable_id')
-                                ->label('Responsable')
-                                ->relationship('responsable', 'name')
+                                ->label('Cargo Responsable')
+                                ->relationship('responsable', 'nombre')
                                 ->searchable()
                                 ->preload(),
-                            
-                            Select::make('estado')
-                                ->label('Estado')
-                                ->options(\App\Enums\ActivityState::class)
-                                ->default(\App\Enums\ActivityState::PROGRAMADO->value)
-                                ->required(),
 
+                            Select::make('responsable_delegado_id')
+                                ->label('Cargo Responsable Delegado')
+                                ->relationship('responsableDelegado', 'nombre')
+                                ->searchable()
+                                ->preload(),
+
+                            TextInput::make('apoyo')
+                                ->label('Apoyo')
+                                ->placeholder('Ej. Supervisor QHSE'),
+                            
                             Select::make('frecuencia')
                                 ->label('Frecuencia')
                                 ->options([
@@ -102,7 +104,6 @@ class ActivityForm
                                     $set('veces_al_anio', $map[$state] ?? 1);
                                     // Reset executions when frequency changes to avoid invalid state
                                     $set('ejecuciones_realizadas', 0);
-                                    $set('estado', 'programado');
                                 })
                                 ->required(),
 
@@ -111,7 +112,8 @@ class ActivityForm
                                 ->numeric()
                                 ->default(1)
                                 ->readOnly()
-                                ->required(),
+                                ->required()
+                                ->visible(fn (Get $get) => $get('frecuencia') !== 'eventual'),
 
                             Select::make('ejecuciones_realizadas')
                                 ->label('Progreso (Ejecuciones)')
@@ -128,16 +130,14 @@ class ActivityForm
                                 ->afterStateUpdated(function ($set, $state, Get $get) {
                                     $max = (int) ($get('veces_al_anio') ?? 1);
                                     $val = (int) $state;
-                                    
-                                    if ($val == 0) {
-                                        $set('estado', 'programado');
-                                    } elseif ($val >= $max) {
-                                        $set('estado', 'ejecutado');
-                                    } else {
-                                        $set('estado', 'en_proceso');
-                                    }
                                 })
-                                ->required(),
+                                ->required()
+                                ->visible(fn (Get $get) => $get('frecuencia') !== 'eventual'),
+                            
+                            Placeholder::make('ejecuciones_eventuales')
+                                ->label('Veces Ejecutado')
+                                ->content(fn (Get $get) => $get('ejecuciones_realizadas') ?? 0)
+                                ->visible(fn (Get $get) => $get('frecuencia') === 'eventual'),
 
                             TextInput::make('detalle_frecuencia')
                                 ->label('Detalle de Eventualidad')
@@ -145,17 +145,6 @@ class ActivityForm
                                 ->required(fn (Get $get) => $get('frecuencia') === 'eventual')
                                 ->visible(fn (Get $get) => $get('frecuencia') === 'eventual')
                                 ->columnSpanFull(),
-                            
-                            Select::make('estado')
-                                ->label('Estado')
-                                ->options([
-                                    'programado' => 'Programado',
-                                    'en_proceso' => 'En Proceso',
-                                    'ejecutado' => 'Ejecutado',
-                                    'no_cumplio' => 'No Cumplió',
-                                ])
-                                ->default('programado')
-                                ->required(),
                         ]),
                 ]),
 
@@ -171,27 +160,53 @@ class ActivityForm
                         ]),
 
                     Placeholder::make('fechas_programadas_visual')
-                        ->label('Fechas del año')
-                        ->content(function (Get $get) {
+                        ->label(fn (Get $get) => $get('frecuencia') === 'eventual' ? 'Historial de Ejecuciones' : 'Fechas del año')
+                        ->content(function (Get $get, $record) {
                             $fechaInicio = $get('fecha_inicio');
                             $frecuencia = $get('frecuencia');
                             $vecesAlAnio = (int) $get('veces_al_anio');
 
-                            if (!$fechaInicio || !$frecuencia) {
+                            if (!$fechaInicio && !$frecuencia && !$record) {
                                 return new HtmlString('<span class="text-gray-500 italic">Seleccione fecha programada y frecuencia para ver el cronograma.</span>');
                             }
 
-                            if ($frecuencia === 'eventual' || $vecesAlAnio === 0) {
+                            // Lógica específica para EVENTUALES
+                            if ($frecuencia === 'eventual') {
+                                $html = '';
                                 $detalle = $get('detalle_frecuencia') ? ': ' . htmlspecialchars($get('detalle_frecuencia')) : '';
+                                
+                                // Mostrar la fecha seleccionada en el formulario (si hay)
                                 if ($fechaInicio) {
                                     try {
                                         $date = Carbon::parse($fechaInicio)->format('d/m/Y');
-                                        return new HtmlString('<span class="text-gray-500 italic">Eventualmente' . $detalle . ' - <strong>Ejecutada el: ' . $date . '</strong></span>');
+                                        $html .= '<div class="mb-2"><span class="text-gray-500 italic">Nueva ejecución: <strong>' . $date . '</strong></span></div>';
                                     } catch (\Exception $e) {}
                                 }
-                                return new HtmlString('<span class="text-gray-500 italic">Eventualmente' . $detalle . '</span>');
+
+                                // Mostrar historial de ejecuciones pasadas si existe el registro
+                                if ($record && $record->executions->count() > 0) {
+                                    $html .= '<div class="flex flex-wrap gap-2 mt-2">';
+                                    foreach ($record->executions as $execution) {
+                                        if ($execution->fecha_ejecucion_real) {
+                                            $fecha = Carbon::parse($execution->fecha_ejecucion_real)->format('d/m/Y');
+                                            $html .= '<div style="background-color: rgba(var(--success-500), 0.1); color: rgb(var(--success-600)); border: 1px solid rgba(var(--success-500), 0.2);" class="px-3 py-1 rounded-full text-xs font-medium" title="Ejecutado">' . $fecha . '</div>';
+                                        }
+                                    }
+                                    $html .= '</div>';
+                                }
+
+                                if (empty($html)) {
+                                    return new HtmlString('<span class="text-gray-500 italic">Eventualmente' . $detalle . ' - Sin ejecuciones registradas</span>');
+                                }
+
+                                return new HtmlString($html);
                             }
 
+                            // Lógica para PROGRAMADAS (Diario, Semanal, Mensual, etc.)
+                            if (!$fechaInicio) {
+                                 return new HtmlString('<span class="text-gray-500 italic">Seleccione fecha de inicio.</span>');
+                            }
+                            
                             try {
                                 $date = Carbon::parse($fechaInicio);
                             } catch (\Exception $e) {
@@ -252,154 +267,6 @@ class ActivityForm
                                 ->inline(false),
                         ]),
                 ]),
-
-            Section::make('Detalles de Auditoría')
-                ->schema([
-                    Grid::make(2)
-                        ->schema([
-                            Select::make('audit_auditor_id')
-                                ->label('Auditor')
-                                ->options(\App\Models\User::pluck('name', 'id'))
-                                ->searchable()
-                                ->preload(),
-                            Textarea::make('audit_hallazgos')
-                                ->label('Hallazgos'),
-                        ]),
-                ])
-                ->hidden(fn (Get $get) => $get('tipo') !== 'auditoria'),
-
-            Section::make('Detalles de Inspección')
-                ->schema([
-                    Grid::make(2)
-                        ->schema([
-                            Select::make('inspection_location_id')
-                                ->label('Ubicación')
-                                ->options(\App\Models\Location::pluck('nombre', 'id'))
-                                ->searchable()
-                                ->preload(),
-                            Textarea::make('inspection_observaciones')
-                                ->label('Observaciones'),
-                        ]),
-                ])
-                ->hidden(fn (Get $get) => $get('tipo') !== 'inspeccion'),
-
-            Section::make('Detalles de Capacitación')
-                ->schema([
-                    Grid::make(2)
-                        ->schema([
-                            TextInput::make('training_tema')
-                                ->label('Tema Específico'),
-                            TimePicker::make('training_hora_inicio')
-                                ->label('Hora de Inicio'),
-                            TextInput::make('training_duracion_horas')
-                                ->label('Duración (Horas)')
-                                ->numeric()
-                                ->default(1),
-                            TextInput::make('training_asistentes_esperados')
-                                ->label('Asistentes Esperados')
-                                ->numeric()
-                                ->default(0),
-                        ]),
-                ])
-                ->hidden(fn (Get $get) => $get('tipo') !== 'capacitacion'),
-
-            Section::make('Detalles de Simulacro')
-                ->schema([
-                    Grid::make(2)
-                        ->schema([
-                            TextInput::make('drill_escenario')
-                                ->label('Escenario del Simulacro')
-                                ->placeholder('Ej. Sismo, Incendio'),
-                            TextInput::make('drill_participantes_count')
-                                ->label('Participantes Estimados')
-                                ->numeric()
-                                ->default(0),
-                        ]),
-                ])
-                ->hidden(fn (Get $get) => $get('tipo') !== 'simulacro'),
-
-            Section::make('Detalles de Incidente')
-                ->schema([
-                    Grid::make(2)
-                        ->schema([
-                            TextInput::make('incident_lugar')
-                                ->label('Lugar del Incidente'),
-                            Select::make('incident_severidad')
-                                ->label('Severidad')
-                                ->options([
-                                    'leve' => 'Leve',
-                                    'moderado' => 'Moderado',
-                                    'grave' => 'Grave',
-                                    'critico' => 'Crítico',
-                                ])
-                                ->default('leve'),
-                        ]),
-                ])
-                ->hidden(fn (Get $get) => $get('tipo') !== 'incidente'),
-
-            Section::make('Detalles de Comité')
-                ->schema([
-                    Grid::make(2)
-                        ->schema([
-                            TextInput::make('committee_tema_principal')
-                                ->label('Tema Principal'),
-                        ]),
-                ])
-                ->hidden(fn (Get $get) => $get('tipo') !== 'comite'),
-
-            Section::make('Detalles de Documentación')
-                ->schema([
-                    Grid::make(2)
-                        ->schema([
-                            Select::make('documentation_tipo_documento')
-                                ->label('Tipo de Documento')
-                                ->options([
-                                    'procedimiento' => 'Procedimiento',
-                                    'formato' => 'Formato',
-                                    'politica' => 'Política',
-                                    'manual' => 'Manual',
-                                    'otro' => 'Otro',
-                                ])
-                                ->required(),
-                            TextInput::make('documentation_version')
-                                ->label('Versión')
-                                ->default('1.0'),
-                            FileUpload::make('documentation_archivo_path')
-                                ->label('Archivo del Documento')
-                                ->directory('documentacion'),
-                        ]),
-                ])
-                ->hidden(fn (Get $get) => $get('tipo') !== 'documentacion'),
-
-            Section::make('Detalles de Promoción')
-                ->schema([
-                    Grid::make(2)
-                        ->schema([
-                            TextInput::make('promotion_publico_objetivo')
-                                ->label('Público Objetivo'),
-                            TextInput::make('promotion_material_entregado')
-                                ->label('Material Entregado'),
-                            TextInput::make('promotion_participantes_estimados')
-                                ->label('Participantes Estimados')
-                                ->numeric()
-                                ->default(0),
-                        ]),
-                ])
-                ->hidden(fn (Get $get) => $get('tipo') !== 'promocion'),
-
-            Section::make('Detalles de Control Operacional')
-                ->schema([
-                    Grid::make(2)
-                        ->schema([
-                            TextInput::make('operational_control_parametro')
-                                ->label('Parámetro a Controlar')
-                                ->required(),
-                            TextInput::make('operational_control_valor_esperado')
-                                ->label('Valor Esperado')
-                                ->required(),
-                        ]),
-                ])
-                ->hidden(fn (Get $get) => $get('tipo') !== 'control_operacional'),
         ]);
     }
 }

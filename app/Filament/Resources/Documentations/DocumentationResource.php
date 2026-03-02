@@ -24,6 +24,12 @@ class DocumentationResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Gestión Administrativa';
 
+    protected static ?string $navigationLabel = 'Documentación';
+
+    protected static ?string $modelLabel = 'Documento';
+
+    protected static ?string $pluralModelLabel = 'Documentos';
+
     protected static ?string $recordTitleAttribute = 'titulo';
 
     public static function form(Schema $schema): Schema

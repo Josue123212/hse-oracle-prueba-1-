@@ -25,6 +25,12 @@ class TrainingResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-academic-cap';
 
+    protected static ?string $navigationLabel = 'Capacitaciones';
+
+    protected static ?string $modelLabel = 'Capacitación';
+
+    protected static ?string $pluralModelLabel = 'Capacitaciones';
+
     protected static ?string $recordTitleAttribute = 'tema';
 
     protected static string|UnitEnum|null $navigationGroup = 'Cultura y Formación';
@@ -69,7 +75,10 @@ class TrainingResource extends Resource
     {
         return [
             'tema',
-            'responsable.name',
+            'activity.nombre',
+            'responsable.nombre',
+            'estado',
+            'observaciones',
         ];
     }
 

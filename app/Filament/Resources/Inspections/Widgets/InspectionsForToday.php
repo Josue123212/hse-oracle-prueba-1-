@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Inspections\Widgets;
 
-use App\Models\Inspection;
+use App\Models\ActivityExecution;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
@@ -11,11 +11,15 @@ use Livewire\Attributes\On;
 
 class InspectionsForToday extends BaseWidget
 {
+    use \App\Filament\Traits\HasEvidencePreview;
+
     protected int | string | array $columnSpan = 'full';
 
     protected static ?int $sort = 1;
 
-    protected static ?string $pollingInterval = '2s';
+    protected static ?string $heading = 'Inspecciones Programadas para Hoy';
+
+    protected ?string $pollingInterval = '30s';
 
     #[On('activity-updated')]
     public function refresh(): void
@@ -24,113 +28,186 @@ class InspectionsForToday extends BaseWidget
 
     public function table(Table $table): Table
     {
-        // Auto-expire logic if needed (optional, keeping it simple for now or copying Audit logic if consistent)
-        // For now, focusing on the "Start" feature.
-
         return $table
             ->query(
-                Inspection::query()
-                    ->whereIn('estado', ['programado', 'en_proceso'])
-                    ->whereHas('activity.executions', function ($query) {
-                        $query->whereDate('fecha_programada', now());
-                    })
+                ActivityExecution::query()
+                    ->with('activity')
+                    ->whereHas('activity', fn ($query) => $query->where('tipo', 'inspeccion'))
+                    ->whereDate('fecha_programada', now())
+                    ->whereIn('estado', [
+                        \App\Enums\ActivityState::PROGRAMADO,
+                        \App\Enums\ActivityState::EN_PROCESO,
+                        \App\Enums\ActivityState::EJECUTADO
+                    ])
             )
-            ->heading('Inspecciones Programadas para Hoy')
             ->columns([
-                Tables\Columns\TextColumn::make('program.nombre')
-                    ->label('Programa')
-                    ->badge()
-                    ->color('gray'),
-                Tables\Columns\TextColumn::make('nombre')
+                Tables\Columns\TextColumn::make('activity.nombre')
                     ->label('Inspección')
+                    ->description(fn (ActivityExecution $record) => $record->activity->descripcion ?? 'Sin descripción')
                     ->weight('bold')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('responsable.name')
+                    ->wrap(),
+
+                Tables\Columns\TextColumn::make('activity.responsable.nombre')
                     ->label('Responsable')
                     ->placeholder('Sin asignar'),
-                Tables\Columns\TextColumn::make('progreso')
-                    ->label('Progreso')
-                    ->state(function (Inspection $record): string {
-                        // We need to access the parent activity to get these values
-                        // assuming the relation is 'activity'
-                        if ($record->activity) {
-                            return "{$record->activity->ejecuciones_realizadas} / {$record->activity->veces_al_anio}";
-                        }
-                        return "N/A";
-                    })
-                    ->badge()
-                    ->color('info'),
-                Tables\Columns\TextColumn::make('fecha_programada')
-                    ->label('Fecha')
-                    ->formatStateUsing(fn () => now()->format('d/m/Y')),
+
+                Tables\Columns\TextColumn::make('estado')
+                    ->label('Estado Hoy')
+                    ->badge(),
             ])
             ->actions([
+                \Filament\Actions\Action::make('ver_evidencias')
+                    ->icon('heroicon-o-folder-open')
+                    ->label('Evidencias')
+                    ->color('info')
+                    ->modalContent(fn (ActivityExecution $record) => view('filament.components.evidence-grid', [
+                        'files' => $this->getEvidenceFiles($record),
+                        'mode' => 'view',
+                    ]))
+                    ->modalWidth('5xl')
+                    ->modalSubmitAction(false)
+                    ->modalCancelAction(fn () => \Filament\Actions\Action::make('cerrar')->label('Cerrar')->close())
+                    ->visible(fn (ActivityExecution $record) => !empty($record->evidencia)),
                 Action::make('iniciar')
-                    ->label(function (Inspection $record) {
-                        $progress = "N/A";
-                        if ($record->activity) {
-                            $progress = "{$record->activity->ejecuciones_realizadas}/{$record->activity->veces_al_anio}";
-                        }
-                        return "Iniciar Inspección ($progress)";
+                    ->label(fn (ActivityExecution $record) => match ($record->estado) {
+                        \App\Enums\ActivityState::EJECUTADO => 'Completado',
+                        \App\Enums\ActivityState::EN_PROCESO => 'Continuar',
+                        default => 'Iniciar',
                     })
-                    ->icon('heroicon-o-clipboard-document-check')
-                    ->color('success')
+                    ->icon(fn (ActivityExecution $record) => match ($record->estado) {
+                        \App\Enums\ActivityState::EJECUTADO => 'heroicon-o-check-circle',
+                        default => 'heroicon-o-play',
+                    })
+                    ->color(fn (ActivityExecution $record) => match ($record->estado) {
+                        \App\Enums\ActivityState::EJECUTADO => 'gray',
+                        default => 'success',
+                    })
+                    ->disabled(fn (ActivityExecution $record) => $record->estado === \App\Enums\ActivityState::EJECUTADO)
                     ->button()
-                    ->requiresConfirmation()
-                    ->modalHeading('Iniciar Inspección')
-                    ->modalDescription(function (Inspection $record) {
-                        $progress = "";
-                        if ($record->activity) {
-                            $progress = "Progreso actual: {$record->activity->ejecuciones_realizadas}/{$record->activity->veces_al_anio}.";
+                    ->mountUsing(function (ActivityExecution $record) {
+                        if ($record->estado === \App\Enums\ActivityState::PROGRAMADO) {
+                            $record->update(['estado' => \App\Enums\ActivityState::EN_PROCESO]);
                         }
-                        return "¿Confirmas el inicio de esta inspección? $progress";
                     })
-                    ->modalSubmitActionLabel('Sí, ejecutar')
-                    ->action(function (Inspection $record) {
-                        // Update Parent Activity Progress
-                        if ($record->activity) {
-                            $record->activity->increment('ejecuciones_realizadas');
-                            
-                            if ($record->activity->ejecuciones_realizadas >= $record->activity->veces_al_anio) {
-                                $record->activity->update(['estado' => 'ejecutado', 'fecha_fin' => now()]);
+                    ->form([
+                        \Filament\Forms\Components\Textarea::make('observacion')
+                            ->label('Observaciones')
+                            ->rows(3)
+                            ->columnSpanFull(),
+                        \Filament\Forms\Components\FileUpload::make('evidencia')
+                            ->label('Evidencia (Archivo)')
+                            ->disk('public') // Cambiamos a disco local temporalmente
+                            ->directory('temp-uploads') // Directorio temporal local
+                            ->visibility('private')
+                            ->preserveFilenames()
+                            ->multiple()
+                            ->storeFileNamesIn('data->file_names')
+                            ->columnSpanFull()
+                            ->required(),
+
+                        \Filament\Schemas\Components\Section::make('Detalles de Inspección')
+                            ->schema([
+                                \Filament\Schemas\Components\Grid::make(2)
+                                    ->schema([
+                                        \Filament\Forms\Components\Select::make('data.location_id')
+                                            ->label('Ubicación')
+                                            ->options(\App\Models\Location::pluck('nombre', 'id'))
+                                            ->searchable()
+                                            ->preload(),
+                                        \Filament\Forms\Components\Textarea::make('data.observaciones')
+                                            ->label('Observaciones Adicionales'),
+                                    ]),
+                            ]),
+                    ])
+                    ->modalHeading('Ejecutar Inspección')
+                    ->modalSubmitActionLabel('Guardar')
+                    ->action(function (ActivityExecution $record, array $data) {
+                        \Illuminate\Support\Facades\Log::info('Inicio de acción guardar inspección', ['record_id' => $record->id, 'data' => $data]);
+                        
+                        $evidenciaLocalPaths = $data['evidencia'] ?? [];
+                        // Asegurar que sea array (aunque multiple() lo garantiza, por seguridad)
+                        if (is_string($evidenciaLocalPaths)) {
+                            $evidenciaLocalPaths = [$evidenciaLocalPaths];
+                        }
+
+                        $finalDrivePaths = [];
+
+                        // Si hay archivos locales, moverlos a Google Drive
+                        if (!empty($evidenciaLocalPaths)) {
+                            $localDisk = \Illuminate\Support\Facades\Storage::disk('public');
+                            $googleDisk = \Illuminate\Support\Facades\Storage::disk('google');
+
+                            foreach ($evidenciaLocalPaths as $localPath) {
+                                \Illuminate\Support\Facades\Log::info('Procesando archivo local de inspección', ['path' => $localPath]);
                                 
-                                // Also update the inspection record itself
-                                $record->update([
-                                    'estado' => 'ejecutado',
-                                ]);
-                                $message = 'Inspección completada (Meta alcanzada)';
-                            } else {
-                                $record->activity->update(['estado' => 'en_proceso']);
-                                // Inspection record stays in 'programado' or maybe 'en_proceso' too?
-                                // Usually the child record represents ONE instance. 
-                                // If the child record is "The Monthly Inspection", then it should be marked done.
-                                // BUT if we are reusing the same record, we just update the parent.
-                                // Based on user request "0/4 -> 1/4", it implies reusing the record or cumulative tracking.
-                                // Let's assume we update the child status to 'en_proceso' as well if not finished, 
-                                // OR we keep it open until fully done.
-                                // Given the request "change to executed ONLY when 4/4", 
-                                // I will set child status to 'en_proceso' as well.
-                                $record->update([
-                                    'estado' => 'en_proceso',
-                                ]);
-                                $message = "Ejecución registrada. Progreso: {$record->activity->ejecuciones_realizadas}/{$record->activity->veces_al_anio}";
+                                if ($localDisk->exists($localPath)) {
+                                    $targetDirectory = \App\Services\DrivePathGenerator::generate($record);
+                                    $fileName = basename($localPath);
+                                    $targetPath = trim($targetDirectory, '/') . '/' . $fileName;
+                                    
+                                    try {
+                                        if (!$googleDisk->exists($targetDirectory)) {
+                                             $googleDisk->makeDirectory($targetDirectory);
+                                        }
+                                        
+                                        $fileContents = $localDisk->get($localPath);
+                                        $googleDisk->put($targetPath, $fileContents);
+                                        
+                                        if ($googleDisk->exists($targetPath)) {
+                                            $finalDrivePaths[] = $targetPath;
+                                            $localDisk->delete($localPath);
+                                            \Illuminate\Support\Facades\Log::info('Archivo de inspección subido exitosamente a Drive', ['drive_path' => $targetPath]);
+                                        } else {
+                                            \Illuminate\Support\Facades\Log::warning('El archivo de inspección no parece existir en Drive tras la subida', ['drive_path' => $targetPath]);
+                                        }
+                                    } catch (\Exception $e) {
+                                        \Illuminate\Support\Facades\Log::error("Error moviendo archivo de inspección {$localPath}: " . $e->getMessage());
+                                    }
+                                } else {
+                                    \Illuminate\Support\Facades\Log::warning('Archivo local de inspección no encontrado', ['path' => $localPath]);
+                                }
                             }
                         } else {
-                            // Fallback for orphaned records (shouldn't happen with new constraints)
-                            $record->update([
-                                'estado' => 'ejecutado',
-                            ]);
-                            $message = 'Inspección iniciada y registrada';
+                            \Illuminate\Support\Facades\Log::info('No hay evidencias de inspección para subir (evidenciaLocalPaths vacío)');
                         }
                         
+                        if (!empty($evidenciaLocalPaths) && empty($finalDrivePaths)) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Advertencia de Carga')
+                                ->body('Se detectaron archivos pero no se pudieron transferir a Google Drive. Revise los logs del sistema.')
+                                ->warning()
+                                ->send();
+                        }
+
+                        $record->update([
+                            'observacion' => $data['observacion'] ?? null,
+                            'evidencia' => !empty($finalDrivePaths) ? $finalDrivePaths : null,
+                            'estado' => \App\Enums\ActivityState::EJECUTADO,
+                            'fecha_ejecucion_real' => now(),
+                            'data' => $data['data'] ?? [],
+                        ]);
+                        
                         \Filament\Notifications\Notification::make()
-                            ->title($message)
+                            ->title('Inspección Ejecutada')
                             ->success()
                             ->send();
+                        \Illuminate\Support\Facades\Log::info('--- FIN GUARDADO INSPECCION FOR TODAY ---');
                     }),
+                \Filament\Actions\ViewAction::make()
+                    ->label('Ver')
+                    ->modalHeading('Detalles de la Ejecución')
+                    ->form([
+                        \Filament\Forms\Components\TextInput::make('activity.nombre')
+                            ->label('Inspección'),
+                        \Filament\Forms\Components\TextInput::make('fecha_programada')
+                            ->label('Fecha Programada'),
+                        \Filament\Forms\Components\TextInput::make('estado')
+                            ->label('Estado'),
+                        \Filament\Forms\Components\Textarea::make('observacion')
+                            ->label('Observaciones'),
+                    ]),
             ])
-            ->emptyStateHeading('No hay inspecciones pendientes para hoy')
-            ->emptyStateDescription('Todo está al día.')
+            ->emptyStateHeading('No hay inspecciones programadas para hoy')
             ->paginated(false);
     }
 }

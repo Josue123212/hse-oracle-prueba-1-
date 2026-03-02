@@ -20,8 +20,8 @@ class InspectionInfolist
                                 TextEntry::make('program.nombre')
                                     ->label('Programa'),
                                 
-                                TextEntry::make('responsable.name')
-                                    ->label('Responsable'),
+                                TextEntry::make('responsable.nombre')
+                                    ->label('Cargo Responsable'),
 
                                 TextEntry::make('fecha_programada')
                                     ->label('Fecha Programada')

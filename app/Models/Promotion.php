@@ -16,7 +16,6 @@ class Promotion extends Model
     protected $casts = [
         'fecha_programada' => 'date',
         'proxima_ejecucion' => 'date',
-        'estado' => ActivityState::class,
     ];
 
     protected static function booted()
@@ -51,6 +50,6 @@ class Promotion extends Model
 
     public function responsable(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'responsable_id');
+        return $this->belongsTo(Position::class, 'responsable_id');
     }
 }
