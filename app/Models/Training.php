@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Traits\DeletesLinkedActivity;
+use App\Traits\FilteredByProgram;
 
 class Training extends Model
 {
-    use DeletesLinkedActivity;
+    use DeletesLinkedActivity, FilteredByProgram;
 
     protected $table = 'trainings';
 
@@ -42,6 +43,7 @@ class Training extends Model
 
     protected static function booted()
     {
+        /*
         static::saved(function ($model) {
             if ($model->activity) {
                 $updates = [];
@@ -55,6 +57,7 @@ class Training extends Model
                 if (!empty($updates)) $model->activity->update($updates);
             }
         });
+        */
     }
 
     public function program(): BelongsTo

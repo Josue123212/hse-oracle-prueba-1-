@@ -12,119 +12,33 @@ use App\Models\ActivityExecution;
 
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
+use App\Traits\FilteredByProgram;
+
 class Activity extends Model
 {
+    use FilteredByProgram;
+
     public bool $is_creating_from_ref = false;
 
     protected static function booted(): void
     {
-        static::saved(function (Activity $activity) {
-            if ($activity->wasChanged(['fecha_inicio', 'frecuencia', 'veces_al_anio', 'fecha_fin'])) {
-                $activity->regenerateExecutions();
-            }
-        });
-        
-        static::created(function (Activity $activity) {
-            $activity->regenerateExecutions();
-            if (!$activity->is_creating_from_ref) {
-                $activity->createLinkedModel();
-            }
-        });
+        // Model events handled by ActivityService
     }
 
+    /*
     public function createLinkedModel(): void
     {
-        $typeToModel = [
-            'auditoria' => Audit::class,
-            'comite' => Committee::class,
-            'documentacion' => Documentation::class,
-            'simulacro' => Drill::class,
-            'incidente' => Incident::class,
-            'inspeccion' => Inspection::class,
-            'control_operacional' => OperationalControl::class,
-            'promocion' => Promotion::class,
-            'capacitacion' => Training::class,
-        ];
-
-        if (!isset($typeToModel[$this->tipo])) {
-            return;
-        }
-
-        $modelClass = $typeToModel[$this->tipo];
-        $attributes = $this->getModelAttributes($modelClass);
-
-        $model = new $modelClass($attributes);
-        $model->activity_id = $this->id;
-        $model->saveQuietly();
+        // ... (removed)
     }
 
     protected function getModelAttributes(string $modelClass): array
     {
-        $modelInstance = new $modelClass();
-        $fillable = $modelInstance->getFillable();
-        $attributes = [];
-
-        foreach ($fillable as $field) {
-            switch ($field) {
-                case 'nombre':
-                case 'tema':
-                case 'titulo':
-                case 'nombre_proceso':
-                case 'nombre_campana':
-                    $attributes[$field] = $this->nombre;
-                    break;
-                case 'descripcion':
-                case 'observaciones':
-                case 'tema_principal':
-                    $attributes[$field] = $this->descripcion ?? 'Sin descripción';
-                    break;
-                case 'program_id':
-                    $attributes[$field] = $this->program_id;
-                    break;
-                case 'responsable_id':
-                case 'auditor_id':
-                    $attributes[$field] = $this->responsable_id;
-                    break;
-                case 'location_id':
-                    $attributes[$field] = $this->location_id;
-                    break;
-                case 'frecuencia':
-                    $attributes[$field] = $this->frecuencia;
-                    break;
-                case 'veces_al_anio':
-                    $attributes[$field] = $this->veces_al_anio;
-                    break;
-                case 'ejecuciones_realizadas':
-                    $attributes[$field] = $this->ejecuciones_realizadas;
-                    break;
-                case 'detalle_frecuencia':
-                    $attributes[$field] = $this->detalle_frecuencia;
-                    break;
-                case 'fecha_programada':
-                case 'fecha_ocurrencia':
-                    // Si no hay fecha de inicio, usamos la fecha actual
-                    $attributes[$field] = $this->fecha_inicio ?? now();
-                    break;
-                case 'fecha_vencimiento':
-                case 'fecha_realizada':
-                case 'fecha_aprobacion':
-                case 'fecha_ejecucion':
-                    // Si no hay fecha de fin, usamos la fecha actual
-                    $attributes[$field] = $this->fecha_fin ?? now();
-                    break;
-                default:
-                    if ($this->getAttribute($field) !== null) {
-                        $attributes[$field] = $this->getAttribute($field);
-                    }
-                    break;
-            }
-        }
-
-        return $attributes;
+        // ... (removed)
     }
+    */
 
     protected $fillable = [
-        'program_id',
+        'program_component_id',
         'location_id',
         'nombre',
         'descripcion',
@@ -158,9 +72,18 @@ class Activity extends Model
         'proxima_ejecucion' => 'date',
     ];
 
-    public function program(): BelongsTo
+    public function component(): BelongsTo
     {
-        return $this->belongsTo(Program::class);
+        return $this->belongsTo(ProgramComponent::class, 'program_component_id');
+    }
+
+    /**
+     * Accesor para mantener compatibilidad (read-only)
+     * $activity->program devolverá el programa padre del componente
+     */
+    public function getProgramAttribute(): ?Program
+    {
+        return $this->component?->program;
     }
 
     public function location(): BelongsTo
@@ -225,46 +148,11 @@ class Activity extends Model
     }
 
     /**
-     * Calculate the next execution date based on start date, frequency, and executions.
+     * Get the next execution date from the database field.
      */
     public function getNextExecutionDateAttribute(): ?\Carbon\Carbon
     {
-        if (!$this->fecha_inicio) {
-            return null;
-        }
-
-        if ($this->frecuencia === 'eventual') {
-            return null;
-        }
-
-        $veces = (int) ($this->veces_al_anio ?? 1);
-        $ejecuciones = (int) ($this->ejecuciones_realizadas ?? 0);
-
-        if ($ejecuciones >= $veces) {
-            return null; // Completed
-        }
-
-        $next = $this->fecha_inicio->copy();
-
-        // If single execution, the date is just the start date
-        if ($veces <= 1) {
-            return $next;
-        }
-
-        // For multiple executions, advance by the number of completed executions
-        for ($i = 0; $i < $ejecuciones; $i++) {
-            match($this->frecuencia) {
-                'diario' => $next->addDay(),
-                'semanal' => $next->addWeek(),
-                'mensual' => $next->addMonth(),
-                'trimestral' => $next->addMonths(3),
-                'semestral' => $next->addMonths(6),
-                'anual' => $next->addYear(),
-                default => $next->addMonth(), // Default fallback
-            };
-        }
-
-        return $next;
+        return $this->proxima_ejecucion;
     }
 
     public function documentation(): HasOne
@@ -282,6 +170,7 @@ class Activity extends Model
         return $this->hasOne(OperationalControl::class);
     }
 
+    /*
     public function regenerateExecutions(): void
     {
         if (!$this->fecha_inicio || !$this->frecuencia) {
@@ -343,6 +232,7 @@ class Activity extends Model
             }
         }
     }
+    */
 
     /**
      * Update the activity status based on its progress.
@@ -367,7 +257,7 @@ class Activity extends Model
      }
 
     /**
-     * Get the formatted list of scheduled months/dates.
+     * Get the formatted list of scheduled months/dates from executions.
      */
     public function getScheduledMonthsAttribute(): string
     {
@@ -375,99 +265,40 @@ class Activity extends Model
             return 'Eventual' . ($this->detalle_frecuencia ? ': ' . $this->detalle_frecuencia : '');
         }
 
-        if (!$this->fecha_inicio) {
+        if ($this->executions->isEmpty()) {
             return 'N/A';
         }
 
-        if (in_array($this->frecuencia, ['diario', 'semanal'])) {
-            return ucfirst($this->frecuencia);
-        }
+        // Get months from executions
+        $months = $this->executions
+            ->sortBy('fecha_programada')
+            ->map(function ($execution) {
+                return ucfirst($execution->fecha_programada->isoFormat('MMM'));
+            })
+            ->unique()
+            ->values()
+            ->all();
 
-        $dates = [];
-        $current = $this->fecha_inicio->copy();
-        // Calculate based on veces_al_anio or execution_period
-        // Assuming we want to show the cycle for the year starting from start date
-        $veces = (int) ($this->veces_al_anio ?? 1);
-        
-        // For annual, just one month
-        if ($this->frecuencia === 'anual') {
-            return ucfirst($current->isoFormat('MMM'));
-        }
-
-        for ($i = 0; $i < $veces; $i++) {
-            $dates[] = ucfirst($current->isoFormat('MMM'));
-            
-            // Advance current for next iteration
-            switch ($this->frecuencia) {
-                case 'mensual':
-                    $current->addMonth();
-                    break;
-                case 'trimestral':
-                    $current->addMonths(3);
-                    break;
-                case 'semestral':
-                    $current->addMonths(6);
-                    break;
-                default:
-                    $current->addMonth();
-            }
-        }
-
-        return implode(', ', $dates);
+        return implode(', ', $months);
     }
 
     /**
-     * Get the next upcoming execution date relative to today.
-     * This ignores whether previous executions were completed or not.
+     * Get the next upcoming execution date relative to today from database.
      */
     public function getFechaProximaAttribute(): ?\Carbon\Carbon
     {
-        if (!$this->fecha_inicio) {
-            return null;
-        }
-
         if ($this->frecuencia === 'eventual') {
             return null;
         }
 
-        $veces = (int) ($this->veces_al_anio ?? 1);
-
-        // Si es una sola vez al año (o veces=1), siempre mostrar la fecha inicio
-        // independientemente de si ya pasó o no.
-        if ($veces === 1) {
-            return $this->fecha_inicio;
-        }
-
         $today = now()->startOfDay();
-        $start = $this->fecha_inicio->copy()->startOfDay();
 
-        // If start date is in the future or today, that's the next one
-        if ($start->gte($today)) {
-            return $this->fecha_inicio;
-        }
+        // Check executions
+        $next = $this->executions()
+            ->whereDate('fecha_programada', '>=', $today)
+            ->orderBy('fecha_programada', 'asc')
+            ->first();
 
-        // Otherwise, iterate to find the first occurrence >= today
-        $current = $start->copy();
-
-        for ($i = 0; $i < $veces; $i++) {
-            if ($current->gte($today)) {
-                return $current;
-            }
-
-            // Advance
-            match($this->frecuencia) {
-                 'diario' => $current->addDay(),
-                 'semanal' => $current->addWeek(),
-                 'mensual' => $current->addMonth(),
-                 'trimestral' => $current->addMonths(3),
-                 'semestral' => $current->addMonths(6),
-                 'anual' => $current->addYear(),
-                 default => $current->addMonth(),
-            };
-        }
-
-        // If all scheduled dates are in the past, return null (or last one?)
-        // User implies "siguiente fecha disponible", if none available, maybe null.
-        return null; 
+        return $next ? $next->fecha_programada : null;
     }
 }

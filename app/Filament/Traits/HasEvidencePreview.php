@@ -53,6 +53,9 @@ trait HasEvidencePreview
 
     public function deleteEvidence(string $path, int $executionId)
     {
+        // VOLVEMOS AL BORRADO INMEDIATO (Robustecido)
+        // Se ejecuta la acción WORM al momento del click.
+        
         $execution = ActivityExecution::find($executionId);
         if (!$execution) {
              Notification::make()
@@ -64,13 +67,49 @@ trait HasEvidencePreview
         }
 
         try {
-            // 1. Eliminar de Google Drive
-            $disk = Storage::disk('google');
-            if ($disk->exists($path)) {
-                $disk->delete($path);
+            // Decodificar URL
+            $decodedPath = urldecode($path);
+
+            // 1. Intentar Revocación WORM
+                $evidenceRecord = \App\Models\ExecutionEvidence::where(function($query) use ($path, $decodedPath) {
+                        $query->where('file_path', $path)
+                              ->orWhere('file_path', $decodedPath);
+                    })
+                    ->whereNull('revoked_at') // Priorizar registros activos
+                    ->latest()
+                    ->first();
+                
+                // Fallback: búsqueda por nombre si el path no coincide exacto
+                if (!$evidenceRecord) {
+                    $filename = basename($path);
+                    $evidenceRecord = \App\Models\ExecutionEvidence::where('execution_id', $executionId)
+                        ->where('file_name', $filename)
+                        ->whereNull('revoked_at')
+                        ->latest()
+                        ->first();
+                }
+
+            if ($evidenceRecord) {
+                // WORM: Revocar lógicamente
+                app(\App\Services\EvidenceStorageService::class)->revokeEvidence(
+                    $evidenceRecord,
+                    auth()->id() ?? 0,
+                    "Removed via web interface (Direct Action)"
+                );
+            } else {
+                // Legacy: Borrar físico si no hay registro BD
+                $disk = Storage::disk('google');
+                if ($disk->exists($path)) {
+                    $disk->delete($path);
+                } elseif ($disk->exists($decodedPath)) {
+                    $disk->delete($decodedPath);
+                }
             }
 
-            // 2. Actualizar registro en base de datos
+            // 2. IMPORTANTE: Actualizar el campo JSON 'evidencia' en la tabla ActivityExecution
+            // Esto es necesario porque el campo 'evidencia' es lo que usa el frontend para pintar la lista.
+            // Aunque hayamos revocado el registro en la tabla relacionada, el JSON sigue teniendo el path.
+            
             $evidences = $execution->evidencia;
             if (is_string($evidences)) {
                 $decoded = json_decode($evidences, true);
@@ -79,31 +118,22 @@ trait HasEvidencePreview
             $evidences = is_array($evidences) ? $evidences : [];
 
             // Filtrar el path eliminado
-            $newEvidences = array_values(array_filter($evidences, function ($p) use ($path) {
-                return $p !== $path;
+            $newEvidences = array_values(array_filter($evidences, function ($p) use ($path, $decodedPath) {
+                return $p !== $path && $p !== $decodedPath;
             }));
 
             $execution->update(['evidencia' => $newEvidences]);
 
-            // 3. Limpiar vista previa si es el archivo actual
-            if ($this->uploadedFilePath === $path) {
-                $this->uploadedFilePath = null;
-                $this->uploadedFileUrl = null;
-            }
-
+            // 3. Notificación y Refresco
             Notification::make()
                 ->title('Evidencia eliminada')
                 ->success()
                 ->send();
-
-            // 4. Refrescar el formulario si es posible
-            // En contextos de página, esto puede requerir $this->fillForm()
+                
+            // Intentar refrescar el estado del componente Livewire si es posible
             if (method_exists($this, 'fillForm')) {
                 $this->fillForm();
             }
-            
-            // En contextos de acción modal, el refresco puede ser automático al actualizarse el modelo
-            // pero si no, podríamos necesitar emitir un evento o similar.
 
         } catch (\Exception $e) {
             Notification::make()

@@ -15,69 +15,69 @@ class GlobalStatsOverview extends BaseWidget
 
     protected function getStats(): array
     {
-        // Cache the raw stats for 30 seconds to match polling interval
-        $stats = Cache::remember('hse_global_stats', 30, function () {
-            // Optimize: Use DB::select for faster aggregation or simpler Eloquent counts
-            // Combining queries where possible
-            
-            $inspectionStats = [
-                'total' => ActivityExecution::whereHas('activity', fn($q) => $q->where('tipo', 'inspeccion'))->count(),
-                'vencidos' => ActivityExecution::where('estado', ActivityState::NO_CUMPLIO)
-                    ->whereHas('activity', fn($q) => $q->where('tipo', 'inspeccion'))->count(),
-                'programados' => ActivityExecution::where('estado', ActivityState::PROGRAMADO)
-                    ->whereHas('activity', fn($q) => $q->where('tipo', 'inspeccion'))->count(),
-                'ejecutados' => ActivityExecution::where('estado', ActivityState::EJECUTADO)
-                    ->whereHas('activity', fn($q) => $q->where('tipo', 'inspeccion'))->count(),
-            ];
+        // Obtener el programa seleccionado de la sesión
+        $programId = session('hse_program_id');
+        $cacheKey = 'hse_global_stats_' . ($programId ?? 'all');
 
-            $trainingStats = [
-                'total' => ActivityExecution::whereHas('activity', fn($q) => $q->where('tipo', 'capacitacion'))->count(),
-                'programados' => ActivityExecution::where('estado', ActivityState::PROGRAMADO)
-                    ->whereHas('activity', fn($q) => $q->where('tipo', 'capacitacion'))->count(),
-                'ejecutados' => ActivityExecution::where('estado', ActivityState::EJECUTADO)
-                    ->whereHas('activity', fn($q) => $q->where('tipo', 'capacitacion'))->count(),
-            ];
+        // Cache the raw stats for 30 seconds to match polling interval
+        $stats = Cache::remember($cacheKey, 30, function () {
+            $now = now();
+            $startOfYear = $now->copy()->startOfYear();
+            // $endOfYear = $now->copy()->endOfYear();
+
+            // 1. Compliance (Year to Date) - All activities
+            // Denominator: Activities scheduled up to today (inclusive)
+            $dueQuery = ActivityExecution::whereBetween('fecha_programada', [$startOfYear, $now->endOfDay()]);
+            $dueCount = (clone $dueQuery)->count();
+            
+            // Numerator: Executed activities from the due set
+            $executedDueCount = (clone $dueQuery)->where('estado', ActivityState::EJECUTADO)->count();
+            
+            $compliance = $dueCount > 0 ? round(($executedDueCount / $dueCount) * 100, 1) : 0;
+
+            // 2. Critical Overdue (Obligatory activities that are overdue or failed)
+            $criticalOverdue = ActivityExecution::whereHas('activity', function ($q) {
+                    $q->where('es_obligatoria', true);
+                })
+                ->where(function($query) use ($now) {
+                    // Explicitly failed
+                    $query->where('estado', ActivityState::NO_CUMPLIO)
+                          // Or scheduled in the past (strictly before today) and not done
+                          ->orWhere(function($q) use ($now) {
+                              $q->whereIn('estado', [ActivityState::PROGRAMADO, ActivityState::EN_PROCESO])
+                                ->where('fecha_programada', '<', $now->startOfDay());
+                          });
+                })->count();
+
+            // 3. Pending Tasks (All pending regardless of type)
+            // Includes future scheduled and overdue pending
+            $pending = ActivityExecution::whereIn('estado', [ActivityState::PROGRAMADO, ActivityState::EN_PROCESO])->count();
 
             return [
-                'inspeccionesVencidas' => $inspectionStats['vencidos'],
-                'inspeccionesPendientes' => $inspectionStats['programados'],
-                'capacitacionesPendientes' => $trainingStats['programados'],
-                'totalInspecciones' => $inspectionStats['total'],
-                'inspeccionesEjecutadas' => $inspectionStats['ejecutados'],
-                'totalTrainings' => $trainingStats['total'],
-                'trainingsEjecutadas' => $trainingStats['ejecutados'],
+                'compliance' => $compliance,
+                'criticalOverdue' => $criticalOverdue,
+                'pending' => $pending,
             ];
         });
 
-        $inspeccionesVencidas = $stats['inspeccionesVencidas'];
-        $inspeccionesPendientes = $stats['inspeccionesPendientes'];
-        $capacitacionesPendientes = $stats['capacitacionesPendientes'];
-        
-        // Calculations
-        $totalInspecciones = $stats['totalInspecciones'];
-        $inspeccionesEjecutadas = $stats['inspeccionesEjecutadas'];
-        $porcentajeInspecciones = $totalInspecciones > 0 ? ($inspeccionesEjecutadas / $totalInspecciones) * 100 : 0;
-
-        $totalTrainings = $stats['totalTrainings'];
-        $trainingsEjecutadas = $stats['trainingsEjecutadas'];
-        $porcentajeTrainings = $totalTrainings > 0 ? ($trainingsEjecutadas / $totalTrainings) * 100 : 0;
-
-        $cumplimientoGlobal = round(($porcentajeInspecciones + $porcentajeTrainings) / 2, 1);
+        $compliance = $stats['compliance'];
+        $criticalOverdue = $stats['criticalOverdue'];
+        $pending = $stats['pending'];
 
         return [
-            Stat::make('Cumplimiento Global HSE', $cumplimientoGlobal . '%')
-                ->description('Promedio de ejecución (Insp + Cap)')
+            Stat::make('Cumplimiento Global HSE', $compliance . '%')
+                ->description('Ejecución vs Programado (YTD)')
                 ->descriptionIcon('heroicon-m-chart-pie')
-                ->color($cumplimientoGlobal > 80 ? 'success' : 'warning')
-                ->chart([70, 80, 75, 85, 90, 85, $cumplimientoGlobal]),
+                ->color($compliance > 80 ? 'success' : ($compliance > 50 ? 'warning' : 'danger'))
+                ->chart([70, 80, 75, 85, 90, 85, $compliance]),
 
-            Stat::make('Inspecciones Críticas', $inspeccionesVencidas)
-                ->description('Vencidas / No realizadas')
+            Stat::make('Actividades Críticas Vencidas', $criticalOverdue)
+                ->description('Obligatorias vencidas / no cumplidas')
                 ->descriptionIcon('heroicon-m-exclamation-triangle')
-                ->color('danger'),
+                ->color($criticalOverdue > 0 ? 'danger' : 'success'),
 
-            Stat::make('Tareas Pendientes', $inspeccionesPendientes + $capacitacionesPendientes)
-                ->description('Inspecciones + Capacitaciones')
+            Stat::make('Tareas Pendientes', $pending)
+                ->description('Total actividades por ejecutar')
                 ->descriptionIcon('heroicon-m-clipboard-document-list')
                 ->color('primary'),
         ];

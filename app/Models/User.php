@@ -50,7 +50,41 @@ class User extends Authenticatable
     }
 
     public function role()
-{
-    return $this->belongsTo(Role::class);
-}
+    {
+        return $this->belongsTo(Role::class);
+    }
+
+    public function hasRole(string $role): bool
+    {
+        return $this->role && $this->role->name === $role;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('admin');
+    }
+
+    public function isEncargado(): bool
+    {
+        $encargadoRoles = [
+            'encargado',
+            'JEFE QHSE',
+            'Médico Ocupacional',
+            'Supervisor QHSE',
+            'Asistente QHSE',
+            'Monitor de Seguridad'
+        ];
+        return $this->role && in_array($this->role->name, $encargadoRoles);
+    }
+
+    public function isLector(): bool
+    {
+        $lectorRoles = ['lector', 'Asistente General'];
+        return $this->role && in_array($this->role->name, $lectorRoles);
+    }
+
+    public function isAlumno(): bool
+    {
+        return $this->hasRole('alumno');
+    }
 }

@@ -15,18 +15,24 @@ class DrivePathGenerator
         // 1. Obtener la actividad y su programa base
         $activity = $record instanceof ActivityExecution ? $record->activity : $record;
         
-        if ($activity && $activity->program) {
-            // 2. Construir jerarquía de programas (recursivo hacia arriba)
-            $program = $activity->program;
-            $programPath = [];
+        if ($activity && $activity->component) {
+            $hierarchyPath = [];
             
+            // 2a. Construir jerarquía de componentes (Subprograma > Elemento)
+            $curr = $activity->component;
+            while ($curr) {
+                array_unshift($hierarchyPath, self::sanitize($curr->name));
+                $curr = $curr->parent;
+            }
+
+            // 2b. Construir jerarquía de programas (Programas Padres)
+            $program = $activity->component->program;
             while ($program) {
-                // Añadir al inicio del array para mantener orden Padre -> Hijo
-                array_unshift($programPath, self::sanitize($program->nombre));
-                $program = $program->parent; // Asumiendo relación 'parent' en modelo Program
+                array_unshift($hierarchyPath, self::sanitize($program->nombre));
+                $program = $program->parent;
             }
             
-            $path = array_merge($path, $programPath);
+            $path = array_merge($path, $hierarchyPath);
         } else {
             $path[] = 'Sin_Programa';
         }

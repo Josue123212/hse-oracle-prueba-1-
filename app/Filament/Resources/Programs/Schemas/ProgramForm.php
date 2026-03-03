@@ -55,7 +55,12 @@ class ProgramForm
                             ]),
                         
                         Textarea::make('descripcion')
-                            ->label('Descripción / Objetivos')
+                            ->label('Descripción')
+                            ->rows(3)
+                            ->columnSpanFull(),
+                            
+                        Textarea::make('objetivo_general')
+                            ->label('Objetivo General')
                             ->rows(3)
                             ->columnSpanFull(),
                     ]),

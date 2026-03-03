@@ -69,8 +69,7 @@ class ActivityExecutionResource extends Resource
                                     ->disabledOn('edit'),
                                 DatePicker::make('fecha_programada')
                                     ->label('Fecha Programada')
-                                    ->required(fn (Get $get) => \App\Models\Activity::find($get('activity_id'))?->frecuencia !== 'eventual')
-                                    ->disabledOn('edit'),
+                                    ->required(fn (Get $get) => \App\Models\Activity::find($get('activity_id'))?->frecuencia !== 'eventual'),
                                 DatePicker::make('fecha_ejecucion_real')
                                     ->label('Fecha Ejecución Real')
                                     ->default(now())
@@ -135,9 +134,11 @@ class ActivityExecutionResource extends Resource
                                     ->disk('public')
                                     ->directory('temp-uploads')
                                     ->multiple()
+                                    ->storeFileNamesIn('new_evidencia_names') // Guardar nombres originales
                                     ->preserveFilenames()
                                     ->columnSpanFull()
                                     ->visible(fn ($operation) => $operation !== 'view'),
+                                \Filament\Forms\Components\Hidden::make('new_evidencia_names'),
                             ])
                             ->columnSpanFull(),
                     ]),
@@ -389,85 +390,87 @@ class ActivityExecutionResource extends Resource
                 ViewAction::make(),
                 EditAction::make()
                     ->mutateFormDataUsing(function (array $data, ActivityExecution $record): array {
-                        $oldEvidences = $record->evidencia;
-                        if (is_string($oldEvidences)) {
-                            $decoded = json_decode($oldEvidences, true);
-                            $oldEvidences = is_array($decoded) ? $decoded : [$oldEvidences];
+                        // 1. Refresh record to get latest evidences (after any direct deletion)
+                        $record->refresh();
+                        $currentEvidences = $record->evidencia;
+                        if (is_string($currentEvidences)) {
+                            $decoded = json_decode($currentEvidences, true);
+                            $currentEvidences = is_array($decoded) ? $decoded : [$currentEvidences];
                         }
-                        $oldEvidences = $oldEvidences ?? [];
+                        $currentEvidences = is_array($currentEvidences) ? $currentEvidences : [];
                         
-                        // 1. Handle Existing Files (Deletion)
-                        $keptEvidences = [];
-                        if (isset($data['existing_evidences'])) {
-                            foreach ($data['existing_evidences'] as $item) {
-                                if (isset($item['path'])) {
-                                    $keptEvidences[] = $item['path'];
-                                }
-                            }
-                        } else {
-                            // If the repeater is not in the form, we assume we keep all existing evidences.
-                            // This prevents accidental deletion when using the ViewField/Grid.
-                            $keptEvidences = $oldEvidences;
-                        }
-                        
-                        // Find deleted files
-                        $deletedEvidences = array_diff($oldEvidences, $keptEvidences);
-                        foreach ($deletedEvidences as $path) {
-                            try {
-                                if (Storage::disk('google')->exists($path)) {
-                                    Storage::disk('google')->delete($path);
-                                }
-                            } catch (\Exception $e) {
-                                // Log error or ignore
-                            }
-                        }
-                        
-                        // 2. Handle New Files (Upload & Move)
+                        // 2. Handle New Files (Upload & Move) using EvidenceStorageService
                         $newEvidences = $data['new_evidencia'] ?? [];
+                        $originalNamesMap = $data['new_evidencia_names'] ?? [];
                         $finalNewPaths = [];
                         
                         if (!empty($newEvidences)) {
-                            $targetDir = \App\Services\DrivePathGenerator::generate($record);
-                            if (!Storage::disk('google')->exists($targetDir)) {
-                                 Storage::disk('google')->makeDirectory($targetDir);
-                            }
+                            $service = app(\App\Services\EvidenceStorageService::class);
+                            $userId = auth()->id() ?? 0;
+                            
+                            $newEvidences = is_array($newEvidences) ? $newEvidences : [$newEvidences];
 
                             foreach ($newEvidences as $tempPath) {
                                 if (Storage::disk('public')->exists($tempPath)) {
-                                    $fileName = basename($tempPath);
-                                    $targetPath = trim($targetDir, '/') . '/' . $fileName;
+                                    $absolutePath = Storage::disk('public')->path($tempPath);
                                     
-                                    Storage::disk('google')->put($targetPath, Storage::disk('public')->get($tempPath));
-                                    if (Storage::disk('google')->exists($targetPath)) {
-                                        $finalNewPaths[] = $targetPath;
+                                    // Obtener nombre original real del mapa
+                                    // Filament guarda: [uuid => nombre_original]
+                                    $uuid = basename($tempPath);
+                                    $originalName = $originalNamesMap[$uuid] ?? $uuid;
+
+                                    try {
+                                        // Store using service (creates DB record + moves file to Google Drive)
+                                        $evidence = $service->storeEvidenceFromPath($record, $absolutePath, $originalName, $userId);
+                                        
+                                        // Add to legacy JSON paths (so user sees it immediately)
+                                        $finalNewPaths[] = $evidence->file_path;
+                                        
+                                        // Clean temp
                                         Storage::disk('public')->delete($tempPath);
+                                    } catch (\Exception $e) {
+                                        // Log error if needed
+                                        \Filament\Notifications\Notification::make()
+                                            ->title('Error al subir archivo')
+                                            ->body($e->getMessage())
+                                            ->danger()
+                                            ->send();
                                     }
                                 }
                             }
                         }
                         
                         // 3. Merge and Set
-                        $data['evidencia'] = array_merge($keptEvidences, $finalNewPaths);
+                        $data['evidencia'] = array_merge($currentEvidences, $finalNewPaths);
                         
                         // Cleanup
                         unset($data['existing_evidences']);
                         unset($data['new_evidencia']);
+                        unset($data['new_evidencia_names']);
+                        unset($data['deleted_evidences']); // Limpiar si quedó basura
                         
                         return $data;
+                    })
+                    ->after(function (ActivityExecution $record) {
+                        if ($record->activity) {
+                            app(\App\Services\ActivityService::class)->calculateNextExecution($record->activity);
+                        }
                     }),
                 DeleteAction::make()
-                    ->visible(fn (ActivityExecution $record) => $record->fecha_programada === null),
+                    ->visible(fn (ActivityExecution $record) => true) // Permitir eliminar cualquier ejecución
+                    ->action(function (ActivityExecution $record) {
+                        $activity = $record->activity;
+                        $record->delete();
+                        
+                        // Recalcular próxima ejecución si la actividad padre existe
+                        if ($activity) {
+                            app(\App\Services\ActivityService::class)->calculateNextExecution($activity);
+                        }
+                    }),
             ])
-            ->toolbarActions([
+            ->bulkActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make()
-                        ->action(function (\Illuminate\Database\Eloquent\Collection $records) {
-                            // Filter out scheduled records
-                            $recordsToDelete = $records->reject(fn ($record) => $record->fecha_programada !== null);
-                            
-                            $recordsToDelete->each->delete();
-                        })
-                        ->deselectRecordsAfterCompletion(),
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

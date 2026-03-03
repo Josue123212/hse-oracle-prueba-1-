@@ -4,10 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Enums\ActivityState;
+use App\Traits\FilteredByProgram;
 
 class ActivityExecution extends Model
 {
+    use SoftDeletes, FilteredByProgram;
+
     protected $fillable = [
         'activity_id',
         'fecha_programada',
@@ -29,5 +34,10 @@ class ActivityExecution extends Model
     public function activity(): BelongsTo
     {
         return $this->belongsTo(Activity::class);
+    }
+
+    public function evidences(): HasMany
+    {
+        return $this->hasMany(ExecutionEvidence::class, 'execution_id');
     }
 }

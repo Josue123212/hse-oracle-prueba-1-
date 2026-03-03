@@ -16,10 +16,9 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-use App\Filament\Resources\Programs\RelationManagers\ElementsRelationManager;
-use Illuminate\Database\Eloquent\Model;
-
+use App\Filament\Resources\Programs\RelationManagers\ProgramComponentsRelationManager;
 use App\Filament\Resources\Programs\Widgets\ProgramStatsOverview;
+use Illuminate\Database\Eloquent\Model;
 
 class ProgramResource extends Resource
 {
@@ -62,7 +61,7 @@ class ProgramResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            ProgramComponentsRelationManager::class,
         ];
     }
 
@@ -70,6 +69,9 @@ class ProgramResource extends Resource
     {
         return [
             'index' => ListPrograms::route('/'),
+            'create' => CreateProgram::route('/create'),
+            'edit' => EditProgram::route('/{record}/edit'),
+            'view' => ViewProgram::route('/{record}'),
         ];
     }
 

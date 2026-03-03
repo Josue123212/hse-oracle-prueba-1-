@@ -67,10 +67,20 @@ class ActivitiesTable
                         default => ucfirst($state),
                     }),
 
-                TextColumn::make('program.nombre')
+                TextColumn::make('component.program.nombre')
                     ->label('Programa')
                     ->searchable()
+                    ->sortable()
                     ->badge(),
+
+                TextColumn::make('component.full_name')
+                    ->label('Componente / Elemento')
+                    ->searchable(query: function ($query, string $search) {
+                        return $query->whereHas('component', function ($q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        });
+                    })
+                    ->wrap(),
 
                 TextColumn::make('location.nombre')
                     ->label('Sede')

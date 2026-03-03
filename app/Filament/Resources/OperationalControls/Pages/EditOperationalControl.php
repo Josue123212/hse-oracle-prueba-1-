@@ -3,8 +3,11 @@
 namespace App\Filament\Resources\OperationalControls\Pages;
 
 use App\Filament\Resources\OperationalControls\OperationalControlResource;
+use App\Services\ActivityService;
 use Filament\Actions\DeleteAction;
+use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Database\Eloquent\Model;
 
 class EditOperationalControl extends EditRecord
 {
@@ -13,7 +16,14 @@ class EditOperationalControl extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            ViewAction::make(),
             DeleteAction::make(),
         ];
+    }
+
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        $service = new ActivityService();
+        return $service->updateWithType($record, $data);
     }
 }

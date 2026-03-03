@@ -39,7 +39,24 @@ class TrainingForm
                                     ->relationship('program', 'nombre')
                                     ->searchable()
                                     ->preload()
+                                    ->live()
                                     ->required(),
+                                
+                                Select::make('program_component_id')
+                                    ->label('Componente / Elemento')
+                                    ->options(function (Get $get) {
+                                        $programId = $get('program_id');
+                                        if (!$programId) return [];
+                                        return \App\Models\ProgramComponent::where('program_id', $programId)
+                                            ->doesntHave('children')
+                                            ->with('parent')
+                                            ->get()
+                                            ->pluck('full_name', 'id');
+                                    })
+                                    ->searchable()
+                                    ->preload()
+                                    ->required()
+                                    ->disabled(fn (Get $get) => !$get('program_id')),
                                 
                                 Select::make('responsable_id')
                                     ->label('Cargo Responsable')

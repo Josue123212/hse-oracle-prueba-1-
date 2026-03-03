@@ -21,6 +21,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Filament\View\PanelsRenderHook;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -38,6 +39,10 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->brandLogo(fn () => view('filament.admin.sidebar-brand-footer'))
             ->brandLogoHeight('auto')
+            ->renderHook(
+                PanelsRenderHook::SIDEBAR_NAV_START,
+                fn () => view('filament.admin.sidebar-program-switcher')
+            )
             ->font(config('hse_theme.font_family', 'Inria Sans'), provider: GoogleFontProvider::class)
             ->favicon(fn () => asset(config('hse_theme.brand.favicon_path', 'logo-pestana.png')) . '?v=2')
             ->topbar(false)

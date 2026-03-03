@@ -36,6 +36,7 @@ class ActivitiesForToday extends BaseWidget
             ->query(
                 \App\Models\ActivityExecution::query()
                     ->with('activity')
+                    // El GlobalScope (ProgramScope) se encarga de filtrar por programa si está en sesión
                     ->whereDate('fecha_programada', now())
                     ->whereIn('estado', [
                         \App\Enums\ActivityState::PROGRAMADO,
@@ -296,7 +297,7 @@ class ActivitiesForToday extends BaseWidget
                             'observacion' => $data['observacion'] ?? null,
                             'evidencia' => $finalDrivePath, // Guardamos la ruta de Drive
                             'estado' => \App\Enums\ActivityState::EJECUTADO,
-                            'fecha_ejecucion_real' => now(),
+                            'fecha_ejecucion_real' => now(), // Se llena con la fecha actual de ejecución
                             'data' => $data['data'] ?? [],
                         ]);
                         

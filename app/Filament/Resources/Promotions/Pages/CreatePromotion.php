@@ -3,9 +3,17 @@
 namespace App\Filament\Resources\Promotions\Pages;
 
 use App\Filament\Resources\Promotions\PromotionResource;
+use App\Services\ActivityService;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Database\Eloquent\Model;
 
 class CreatePromotion extends CreateRecord
 {
     protected static string $resource = PromotionResource::class;
+
+    protected function handleRecordCreation(array $data): Model
+    {
+        $service = new ActivityService();
+        return $service->createWithType($data, 'promocion');
+    }
 }

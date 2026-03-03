@@ -49,12 +49,33 @@ class ActivityForm
                                 ->required()
                                 ->placeholder('ej. Charla de 5 minutos'),
 
-                            Select::make('program_id')
-                                ->label('Programa Asociado')
-                                ->relationship('program', 'nombre')
+                            Select::make('program_id_selector')
+                                ->label('Programa')
+                                ->options(\App\Models\Program::pluck('nombre', 'id'))
                                 ->searchable()
                                 ->preload()
+                                ->live()
+                                ->afterStateUpdated(fn ($set) => $set('program_component_id', null))
+                                ->dehydrated(false)
+                                ->formatStateUsing(fn ($record) => $record?->component?->program_id)
                                 ->required(),
+
+                            Select::make('program_component_id')
+                                ->label('Componente / Elemento')
+                                ->options(function (Get $get) {
+                                    $programId = $get('program_id_selector');
+                                    if (!$programId) return [];
+                                    
+                                    return \App\Models\ProgramComponent::where('program_id', $programId)
+                                        ->doesntHave('children') // Only show leaf components (no sub-elements if they have them)
+                                        ->with('parent')
+                                        ->get()
+                                        ->pluck('full_name', 'id');
+                                })
+                                ->searchable()
+                                ->preload()
+                                ->required()
+                                ->disabled(fn (Get $get) => !$get('program_id_selector')),
 
                             Select::make('location_id')
                                 ->relationship('location', 'nombre')

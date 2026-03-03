@@ -6,10 +6,11 @@ use App\Enums\ActivityState;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Traits\DeletesLinkedActivity;
+use App\Traits\FilteredByProgram;
 
 class Audit extends Model
 {
-    use DeletesLinkedActivity;
+    use DeletesLinkedActivity, FilteredByProgram;
 
     protected $fillable = [
         'program_id',
@@ -39,6 +40,7 @@ class Audit extends Model
 
     protected static function booted()
     {
+        /*
         static::saved(function ($model) {
             if ($model->activity) {
                 $updates = [];
@@ -52,6 +54,7 @@ class Audit extends Model
                 if (!empty($updates)) $model->activity->update($updates);
             }
         });
+        */
     }
 
     public function program(): BelongsTo

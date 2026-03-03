@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Traits\DeletesLinkedActivity;
+use App\Traits\FilteredByProgram;
 
 class Documentation extends Model
 {
-    use DeletesLinkedActivity;
+    use DeletesLinkedActivity, FilteredByProgram;
 
     protected $guarded = [];
 

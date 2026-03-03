@@ -5,21 +5,28 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Program extends Model
 {
     protected $fillable = [
         'nombre',
         'descripcion',
+        'objetivo_general',
         'anio',
         'estado',
         'supervisor_id',
         'parent_id', // Add parent_id to fillable
     ];
 
-    public function activities(): HasMany
+    public function components(): HasMany
     {
-        return $this->hasMany(Activity::class);
+        return $this->hasMany(ProgramComponent::class);
+    }
+
+    public function activities(): HasManyThrough
+    {
+        return $this->hasManyThrough(Activity::class, ProgramComponent::class);
     }
 
     public function supervisor(): BelongsTo

@@ -17,6 +17,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 
 class ActivityResource extends Resource
 {
@@ -33,6 +34,12 @@ class ActivityResource extends Resource
     protected static ?string $pluralModelLabel = 'Actividades';
 
     protected static ?string $recordTitleAttribute = 'nombre';
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with(['component.parent', 'component.program']);
+    }
 
     public static function form(Schema $schema): Schema
     {

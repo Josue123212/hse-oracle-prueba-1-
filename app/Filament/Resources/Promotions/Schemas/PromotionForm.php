@@ -30,7 +30,24 @@ class PromotionForm
                     ->live()
                     ->afterStateUpdated(function (Set $set) {
                         $set('activity_id', null);
+                        $set('program_component_id', null);
                     }),
+
+                Select::make('program_component_id')
+                    ->label('Componente / Elemento')
+                    ->options(function (Get $get) {
+                        $programId = $get('program_id');
+                        if (!$programId) return [];
+                        return \App\Models\ProgramComponent::where('program_id', $programId)
+                            ->doesntHave('children')
+                            ->with('parent')
+                            ->get()
+                            ->pluck('full_name', 'id');
+                    })
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->disabled(fn (Get $get) => !$get('program_id')),
 
                 Select::make('responsable_id')
                     ->relationship('responsable', 'nombre')

@@ -3,9 +3,11 @@
 namespace App\Filament\Resources\Inspections\Pages;
 
 use App\Filament\Resources\Inspections\InspectionResource;
+use App\Services\ActivityService;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Database\Eloquent\Model;
 
 class EditInspection extends EditRecord
 {
@@ -17,5 +19,11 @@ class EditInspection extends EditRecord
             ViewAction::make(),
             DeleteAction::make(),
         ];
+    }
+
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        $service = new ActivityService();
+        return $service->updateWithType($record, $data);
     }
 }

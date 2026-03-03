@@ -3,6 +3,9 @@
 <div class="max-h-[300px] overflow-y-auto p-1 space-y-2">
     @foreach($files as $file)
         <div 
+            x-data="{ isDeleted: false }"
+            x-show="!isDeleted"
+            x-transition.duration.300ms
             wire:key="{{ $file['path'] }}"
             class="group relative flex items-center gap-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 transition-all duration-200 hover:shadow-md hover:border-primary-500/50 dark:hover:border-primary-400/50"
         >
@@ -52,8 +55,7 @@
                 <!-- Delete Action (Only Edit) -->
                 <button 
                     type="button"
-                    wire:click.stop="deleteEvidence(@js($file['path']), @js($recordId))"
-                    wire:confirm="¿Estás seguro de que deseas eliminar este archivo? Esta acción no se puede deshacer."
+                    x-on:click.stop="isDeleted = true; $wire.deleteEvidence(@js($file['path']), @js($recordId))"
                     class="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all"
                     title="Eliminar archivo"
                 >
