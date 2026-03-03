@@ -61,6 +61,21 @@ class ProgramsTable
                 ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
+                \Filament\Actions\ActionGroup::make([
+                    \Filament\Actions\Action::make('pdf')
+                        ->label('PDF')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->url(fn ($record) => route('programs.pdf', $record))
+                        ->openUrlInNewTab(),
+                    \Filament\Actions\Action::make('excel')
+                        ->label('Excel')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->url(fn ($record) => route('programs.excel', $record))
+                        ->openUrlInNewTab(),
+                ])
+                ->label('Reportes')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('info'),
             ])
             ->bulkActions([
                 BulkActionGroup::make([

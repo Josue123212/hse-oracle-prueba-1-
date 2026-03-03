@@ -66,3 +66,11 @@ Route::get('/google-drive/preview', function (Request $request) {
     ]);
 })->name('google-drive.preview')->middleware('auth');
 
+Route::get('/programs/{program}/pdf', [\App\Http\Controllers\ProgramPdfController::class, 'download'])
+    ->name('programs.pdf')
+    ->middleware('auth');
+
+Route::get('/programs/{program}/excel', [\App\Http\Controllers\ProgramPdfController::class, 'downloadExcel'])
+    ->name('programs.excel')
+    ->middleware('auth');
+

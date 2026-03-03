@@ -7,20 +7,37 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use App\Services\FileStorageService;
 use Illuminate\Support\Carbon;
+use App\Exports\ProgramExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ProgramPdfController extends Controller
 {
+    public function downloadExcel(Program $program)
+    {
+        $program->load([
+            'components.activities.location',
+            'components.activities.responsable',
+            'components.activities.responsableDelegado',
+            'components.activities.executions',
+            'supervisor'
+        ]);
+
+        return Excel::download(new ProgramExport($program), "programa-{$program->codigo}.xlsx");
+    }
+
     public function download(Program $program, FileStorageService $files)
     {
         // Load relationships needed for the PDF
         $program->load([
-            'elements.subElement', 
-            'elements.specificObjective', 
-            'elements.activity', 
+            'components.activities.location',
+            'components.activities.responsable',
+            'components.activities.responsableDelegado',
+            'components.activities.executions',
             'supervisor'
         ]);
 
         $pdf = Pdf::loadView('pdf.program', compact('program'));
+        $pdf->setPaper('a4', 'landscape'); // Mejor landscape para tablas anchas
         $bytes = $pdf->output();
         $date = $program->fecha_emision ? Carbon::parse($program->fecha_emision) : Carbon::now();
         $year = $date->year;
