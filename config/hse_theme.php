@@ -32,10 +32,7 @@ return [
             'label' => 'Organización y Ubicaciones',
             'icon' => null,
         ],
-        [
-            'label' => 'Usuarios y Comunicación',
-            'icon' => null,
-        ],
+
         [
             'label' => 'Capacitación',
             'icon' => null,

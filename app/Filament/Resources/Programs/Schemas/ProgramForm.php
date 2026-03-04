@@ -25,12 +25,14 @@ class ProgramForm
                                     ->maxLength(150)
                                     ->label('Nombre del Programa'),
 
+                                /*
                                 Select::make('parent_id')
                                     ->relationship('parent', 'nombre')
                                     ->label('Programa Padre (Opcional)')
                                     ->searchable()
                                     ->preload()
                                     ->placeholder('Seleccione si este es un sub-programa'),
+                                */
 
                                 Select::make('anio')
                                     ->label('Año')
@@ -47,11 +49,13 @@ class ProgramForm
                                     ->default('borrador')
                                     ->required(),
                                 
+                                /*
                                 Select::make('supervisor_id')
                                     ->relationship('supervisor', 'nombre')
                                     ->label('Supervisor Responsable')
                                     ->searchable()
                                     ->preload(),
+                                */
                             ]),
                         
                         Textarea::make('descripcion')

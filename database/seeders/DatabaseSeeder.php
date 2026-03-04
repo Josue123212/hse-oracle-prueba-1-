@@ -18,17 +18,19 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // 1. Crear los roles básicos
-        $admin = Role::create(['name' => 'admin']);
-        Role::create(['name' => 'encargado']);
-        Role::create(['name' => 'lector']);
-        Role::create(['name' => 'alumno']);
+        $admin = Role::firstOrCreate(['name' => 'admin']);
+        Role::firstOrCreate(['name' => 'encargado']);
+        Role::firstOrCreate(['name' => 'lector']);
+        Role::firstOrCreate(['name' => 'alumno']);
 
         // 2. Crear tu usuario administrador vinculado al rol
-        User::create([
-            'name' => 'ORACLE PERU SAC',
-            'email' => 'oracle.test@test.com',
-            'password' => Hash::make('dev123'),
-            'role_id' => $admin->id, // Aquí asignamos el ID del rol creado arriba
-        ]);
+        User::firstOrCreate(
+            ['email' => 'oracle.test@test.com'],
+            [
+                'name' => 'ORACLE PERU SAC',
+                'password' => Hash::make('dev123'),
+                'role_id' => $admin->id,
+            ]
+        );
     }
 }

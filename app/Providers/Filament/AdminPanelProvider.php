@@ -67,7 +67,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                AccountWidget::class,
+                // AccountWidget::class,
                 // FilamentInfoWidget::class,
                 // Widgets específicos desactivados por solicitud del usuario (se usa EventualActivities general)
                 // \App\Filament\Resources\Incidents\Widgets\EventualIncidents::class,

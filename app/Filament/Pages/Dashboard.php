@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Session;
 
 class Dashboard extends BaseDashboard
 {
+    protected static ?string $navigationLabel = 'Panel de Control';
+    protected static ?string $title = 'Panel de Control';
+
     protected function getHeaderActions(): array
     {
         return [

@@ -193,9 +193,9 @@
                                 $borderTop = $isFirst ? '1px solid #000' : 'none';
                                 $borderBottom = $isLast ? '1px solid #000' : 'none';
                             @endphp
-                            <td style="text-align: left; padding: 5px; font-size: 8px; border-top: {{ $borderTop }}; border-bottom: {{ $borderBottom }}; border-left: 1px solid #000; border-right: 1px solid #000;">
+                            <td style="text-align: left; padding: 5px; font-size: 8px; border-top: <?php echo $borderTop; ?>; border-bottom: <?php echo $borderBottom; ?>; border-left: 1px solid #000; border-right: 1px solid #000;">
                                 @if($isFirst)
-                                    {{ preg_replace('/\s*-\s*Prog\s*\d+/i', '', $component->objetivo ?? 'Objetivo Específico del Componente ' . $loop->parent->iteration) }}
+                                    {{ $component->objetivo ?? 'Objetivo Específico del Componente ' . $loop->parent->iteration }}
                                 @endif
                             </td>
 

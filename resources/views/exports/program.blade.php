@@ -25,7 +25,7 @@
             <th colspan="35" style="font-weight: bold; font-size: 14px;">Objetivo General:</th>
         </tr>
         <tr>
-            <td colspan="35" style="height: 60px; vertical-align: top; text-align: left; wrap-text: true;">
+            <td colspan="35" style="height: 60px; vertical-align: top; text-align: left; word-wrap: break-word;">
                 {{ $program->objetivo_general ?? $program->obj_general ?? 'Realizar el cumplimiento del Sistema Integrado de Gestión según las normativas vigentes y los estándares de los clientes relacionados en Seguridad, Salud y Medio Ambiente.' }}
             </td>
         </tr>
@@ -105,19 +105,29 @@
                             
                             $pStyle = $isScheduled($m) ? 'background-color: #FFC000; text-align: center; border: 1px solid #000000;' : 'text-align: center; border: 1px solid #000000;';
                             $pContent = $isScheduled($m) ? 'P' : '';
-
+                            
                             $eStyle = 'text-align: center; border: 1px solid #000000;';
                             $eContent = '';
                             if ($executionStatus === \App\Enums\ActivityState::EJECUTADO) {
-                                $eStyle = 'background-color: #00B050; color: white; text-align: center; border: 1px solid #000000;';
+                                $eStyle = 'background-color: #00B050; color: white; text-align: center; border: 1px solid #000000; font-weight: bold;';
                                 $eContent = 'E';
                             } elseif ($executionStatus === \App\Enums\ActivityState::NO_CUMPLIO) {
-                                $eStyle = 'background-color: #FF0000; color: white; text-align: center; border: 1px solid #000000;';
+                                $eStyle = 'background-color: #FF0000; color: white; text-align: center; border: 1px solid #000000; font-weight: bold;';
                                 $eContent = 'NC';
                             }
                         @endphp
-                        <td style="{{ $pStyle }}">{{ $pContent }}</td>
-                        <td style="{{ $eStyle }}">{{ $eContent }}</td>
+                        <td style="<?php echo $pStyle; ?>">
+
+                            @if($pContent)
+                                {{ $pContent }}
+                            @endif
+                        </td>
+                        <td style="<?php echo $eStyle; ?>">
+
+                            @if($eContent)
+                                {{ $eContent }}
+                            @endif
+                        </td>
                     @endforeach
                     
                     <td style="text-align: center; border: 1px solid #000000;">
