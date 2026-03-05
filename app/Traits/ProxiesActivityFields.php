@@ -14,6 +14,7 @@ trait ProxiesActivityFields
 
     public static function bootProxiesActivityFields()
     {
+        /*
         static::saving(function (Model $model) {
             $proxied = $model->getProxiedFields();
             foreach ($proxied as $field) {
@@ -28,7 +29,9 @@ trait ProxiesActivityFields
                 }
             }
         });
+        */
 
+        /*
         static::saved(function (Model $model) {
             $updates = $model->tempProxies; // Access the property
             
@@ -39,6 +42,7 @@ trait ProxiesActivityFields
             // Clear temp proxies
             $model->tempProxies = [];
         });
+        */
     }
 
 
@@ -53,7 +57,7 @@ trait ProxiesActivityFields
         if (in_array('location_id', $this->getProxiedFields())) {
             return $this->activity?->location_id;
         }
-        return null;
+        return $value;
     }
 
     public function getResponsableDelegadoIdAttribute($value)
@@ -62,7 +66,7 @@ trait ProxiesActivityFields
         if (in_array('responsable_delegado_id', $this->getProxiedFields())) {
             return $this->activity?->responsable_delegado_id;
         }
-        return null;
+        return $value; // Return null if not proxied and not set
     }
 
     public function getApoyoAttribute($value)
@@ -71,7 +75,7 @@ trait ProxiesActivityFields
         if (in_array('apoyo', $this->getProxiedFields())) {
             return $this->activity?->apoyo;
         }
-        return null;
+        return $value;
     }
 
     public function getEsObligatoriaAttribute($value)
@@ -85,11 +89,18 @@ trait ProxiesActivityFields
         // Return relationship from Activity (proxy)
         // If activity doesn't exist yet, return a dummy relation from a new Activity instance
         // This allows Filament to get the related model and query options
+        if (!in_array('location_id', $this->getProxiedFields())) {
+            // If the model has its own location_id, define the relationship normally
+             return $this->belongsTo(\App\Models\Location::class);
+        }
         return $this->activity ? $this->activity->location() : (new \App\Models\Activity)->location();
     }
 
     public function responsableDelegado()
     {
+        if (!in_array('responsable_delegado_id', $this->getProxiedFields())) {
+             return $this->belongsTo(\App\Models\Position::class, 'responsable_delegado_id');
+        }
         return $this->activity ? $this->activity->responsableDelegado() : (new \App\Models\Activity)->responsableDelegado();
     }
 }

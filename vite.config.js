@@ -8,6 +8,8 @@ export default defineConfig({
             input: [
                 'resources/css/app.css',
                 'resources/js/app.js',
+                'resources/js/test-charts.js',
+                'resources/js/filament-dashboard.js',
                 'resources/css/filament/admin/theme.css',
             ],
             refresh: true,

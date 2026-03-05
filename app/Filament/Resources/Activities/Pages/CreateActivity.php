@@ -7,10 +7,20 @@ use App\Services\ActivityService;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
+use Filament\Notifications\Notification;
 
 class CreateActivity extends CreateRecord
 {
     protected static string $resource = ActivityResource::class;
+
+    protected function getCreatedNotification(): ?Notification
+    {
+        return Notification::make()
+            ->success()
+            ->title('Actividad creada exitosamente')
+            ->body('La actividad se ha registrado correctamente en el sistema.')
+            ->duration(5000);
+    }
 
     protected function handleRecordCreation(array $data): Model
     {

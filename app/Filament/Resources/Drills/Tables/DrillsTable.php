@@ -23,6 +23,7 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Forms\Components\Placeholder;
+use Illuminate\Database\Eloquent\Model;
 
 class DrillsTable
 {
@@ -190,7 +191,11 @@ class DrillsTable
                     ->modalSubmitActionLabel('Guardar Cambios'),
 
                 ViewAction::make(),
-                EditAction::make(),
+                EditAction::make()
+                    ->using(function (Model $record, array $data): Model {
+                        $service = new \App\Services\ActivityService();
+                        return $service->updateWithType($record, $data);
+                    }),
                 DeleteAction::make(),
             ])
             ->bulkActions([

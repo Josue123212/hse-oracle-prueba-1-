@@ -1,21 +1,21 @@
 <x-filament-widgets::widget>
-    <div class="mb-4">
+    <div class="mb-4 flex items-center gap-x-3">
         <h2 class="text-lg font-bold tracking-tight text-gray-950 dark:text-white sm:text-xl">
-            Actividades Generales Programadas para Hoy
+            Ejecuciones Vencidas (Urgente)
         </h2>
     </div>
     <x-filament::section
         class="fi-wi-stats-overview-stat-chart-container relative overflow-hidden"
     >
         <div 
-            class="activities-for-today-table-wrapper relative"
+            class="overdue-activities-table-wrapper relative"
             style="max-height: 350px; overflow: auto;"
         >
             {{ $this->table }}
         </div>
         <style>
-            .activities-for-today-table-wrapper .fi-ta-content,
-            .activities-for-today-table-wrapper .fi-ta-content-ctn {
+            .overdue-activities-table-wrapper .fi-ta-content,
+            .overdue-activities-table-wrapper .fi-ta-content-ctn {
                 overflow: visible !important;
             }
         </style>

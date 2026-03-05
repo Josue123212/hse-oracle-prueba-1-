@@ -11,6 +11,8 @@ use App\Enums\ActivityState;
 
 class GlobalStatsOverview extends BaseWidget
 {
+    protected static ?int $sort = 0;
+
     protected ?string $pollingInterval = '30s';
 
     protected function getStats(): array

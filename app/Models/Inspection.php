@@ -23,7 +23,7 @@ class Inspection extends Model
         'fecha_programada',
         'resultado',
         'responsable_id',
-        'location_id',
+        'location_id', // Inspeccion has location_id
         'observaciones',
         'lugar',
         'tipo_inspeccion',
@@ -32,8 +32,8 @@ class Inspection extends Model
         'ejecuciones_realizadas',
         'detalle_frecuencia',
         'proxima_ejecucion',
-        'responsable_delegado_id',
-        'apoyo',
+        // 'responsable_delegado_id', // Proxied to Activity
+        // 'apoyo', // Proxied to Activity
     ];
 
     protected $casts = [

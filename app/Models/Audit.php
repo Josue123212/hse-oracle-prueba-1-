@@ -33,9 +33,9 @@ class Audit extends Model
         'ejecuciones_realizadas',
         'detalle_frecuencia',
         'proxima_ejecucion',
-        'location_id',
-        'responsable_delegado_id',
-        'apoyo',
+        // 'location_id', // Proxied to Activity
+        // 'responsable_delegado_id', // Proxied to Activity
+        // 'apoyo', // Proxied to Activity
     ];
 
     protected $casts = [

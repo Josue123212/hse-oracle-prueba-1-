@@ -216,12 +216,19 @@ class ActivityService
             // Filtrar campos que son de la actividad explícitamente para evitar problemas
             // con campos extra que vengan en $data
             $activityFillable = [
-                'program_id', 'nombre', 'descripcion', 'tipo', 'frecuencia', 
+                'program_component_id', 'nombre', 'descripcion', 'tipo', 'frecuencia', 
                 'estado', 'unidad_medida', 'fecha_inicio', 'fecha_fin', 
                 'responsable_id', 'es_obligatoria', 'meta', 'veces_al_anio',
                 'responsable_delegado_id', 'apoyo', 'location_id', 
                 'detalle_frecuencia'
             ];
+            
+            // Map fecha_programada to fecha_inicio/fecha_fin if present
+            if (isset($data['fecha_programada'])) {
+                $data['fecha_inicio'] = $data['fecha_programada'];
+                $data['fecha_fin'] = $data['fecha_programada'];
+            }
+
             $activityData = Arr::only($data, $activityFillable);
             
             $activity->update($activityData);
@@ -328,13 +335,22 @@ class ActivityService
         return DB::transaction(function () use ($satellite, $data) {
             // 1. Actualizar el registro Satélite
             // Excluir campos que pertenecen exclusivamente a la Actividad para evitar errores en modelos con guarded=[]
-            $activityFields = ['location_id', 'responsable_delegado_id', 'apoyo'];
+            $activityFields = ['location_id', 'responsable_delegado_id', 'apoyo', 'es_obligatoria'];
             $satelliteData = Arr::except($data, $activityFields);
-            $satellite->update($satelliteData);
+            
+            // Forzar actualización explícita ignorando fillable/guarded del modelo satélite si es necesario, 
+            // pero standard update() respeta $fillable.
+            // Aseguramos que los campos que existen en la tabla satélite se actualicen.
+            $satellite->fill($satelliteData);
+            $satellite->save();
+            
+            // Recargar para asegurar que tenemos los datos más recientes
+            $satellite->refresh();
 
             // 2. Sincronizar campos comunes con la Actividad
             if ($satellite->activity) {
                 $activityData = [
+                    'program_component_id' => $data['program_component_id'] ?? $satellite->program_component_id,
                     'nombre' => $data['nombre'] ?? $satellite->nombre,
                     'descripcion' => $data['descripcion'] ?? $satellite->descripcion ?? $data['nombre'] ?? $satellite->nombre,
                     'frecuencia' => $data['frecuencia'] ?? $satellite->frecuencia,
@@ -360,8 +376,12 @@ class ActivityService
 
                 $satellite->activity->update($activityData);
                 
+                // Recargar para cálculos precisos
+                $satellite->activity->refresh();
+                
                 // Recalcular próxima ejecución si cambiaron fechas o frecuencia
                 if (isset($data['fecha_programada']) || isset($data['frecuencia'])) {
+                    $this->generateExecutions($satellite->activity);
                     $this->calculateNextExecution($satellite->activity);
                 }
             }

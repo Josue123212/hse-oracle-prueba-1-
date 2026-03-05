@@ -26,6 +26,7 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TimePicker;
 use Illuminate\Support\Facades\Storage;
 use Filament\Forms\Components\FileUpload;
+use Illuminate\Database\Eloquent\Model;
 
 class TrainingsTable
 {
@@ -278,7 +279,11 @@ class TrainingsTable
                     ->modalSubmitActionLabel('Guardar Cambios'),
 
                 ViewAction::make(),
-                EditAction::make(),
+                EditAction::make()
+                    ->using(function (Model $record, array $data): Model {
+                        $service = new \App\Services\ActivityService();
+                        return $service->updateWithType($record, $data);
+                    }),
                 DeleteAction::make(),
             ])
             ->bulkActions([

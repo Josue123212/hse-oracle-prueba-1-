@@ -9,6 +9,7 @@ use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
+use Filament\Notifications\Notification;
 
 class EditActivity extends EditRecord
 {
@@ -18,8 +19,22 @@ class EditActivity extends EditRecord
     {
         return [
             ViewAction::make(),
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->requiresConfirmation()
+                ->modalHeading('Eliminar Actividad')
+                ->modalDescription('¿Estás seguro de que deseas eliminar esta actividad? Esta acción no se puede deshacer.')
+                ->modalSubmitActionLabel('Sí, eliminar')
+                ->successNotificationTitle('Actividad eliminada correctamente'),
         ];
+    }
+
+    protected function getSavedNotification(): ?Notification
+    {
+        return Notification::make()
+            ->success()
+            ->title('Actividad actualizada correctamente')
+            ->body('Los cambios se han guardado en el sistema.')
+            ->duration(5000);
     }
 
     protected function mutateFormDataBeforeFill(array $data): array

@@ -451,12 +451,23 @@ class ActivitiesTable
                     ->modalWidth('4xl'),
                 
                 ViewAction::make(),
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                    ->successNotificationTitle('Actividad actualizada correctamente'),
+                DeleteAction::make()
+                    ->requiresConfirmation()
+                    ->modalHeading('Eliminar Actividad')
+                    ->modalDescription('¿Estás seguro de que deseas eliminar esta actividad? Esta acción no se puede deshacer.')
+                    ->modalSubmitActionLabel('Sí, eliminar')
+                    ->successNotificationTitle('Actividad eliminada correctamente'),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->requiresConfirmation()
+                        ->modalHeading('Eliminar Actividades')
+                        ->modalDescription('¿Estás seguro de que deseas eliminar las actividades seleccionadas? Esta acción no se puede deshacer.')
+                        ->modalSubmitActionLabel('Sí, eliminar todo')
+                        ->successNotificationTitle('Actividades eliminadas correctamente'),
                 ]),
             ])
             ->defaultSort('created_at', 'desc');

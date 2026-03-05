@@ -13,6 +13,13 @@ use Illuminate\Filesystem\FilesystemAdapter;
 
 use Illuminate\Support\Facades\Log;
 
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Support\Facades\FilamentView;
+use Filament\View\PanelsRenderHook;
+
 // Models
 use App\Models\Activity;
 use App\Models\ActivityExecution;
@@ -25,7 +32,7 @@ use App\Models\Incident;
 use App\Models\Inspection;
 use App\Models\Location;
 use App\Models\Message;
-use App\Models\Notification;
+use App\Models\Alert;
 use App\Models\OperationalControl;
 use App\Models\Position;
 use App\Models\PositionType;
@@ -50,7 +57,7 @@ use App\Policies\IncidentPolicy;
 use App\Policies\InspectionPolicy;
 use App\Policies\LocationPolicy;
 use App\Policies\MessagePolicy;
-use App\Policies\NotificationPolicy;
+use App\Policies\AlertPolicy;
 use App\Policies\OperationalControlPolicy;
 use App\Policies\PositionPolicy;
 use App\Policies\PositionTypePolicy;
@@ -102,7 +109,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Inspection::class, InspectionPolicy::class);
         Gate::policy(Location::class, LocationPolicy::class);
         Gate::policy(Message::class, MessagePolicy::class);
-        Gate::policy(Notification::class, NotificationPolicy::class);
+        Gate::policy(Alert::class, AlertPolicy::class);
         Gate::policy(OperationalControl::class, OperationalControlPolicy::class);
         Gate::policy(Position::class, PositionPolicy::class);
         Gate::policy(PositionType::class, PositionTypePolicy::class);
@@ -147,8 +154,8 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // Sticky Header for Dashboard (Panel de Control)
-        \Filament\Support\Facades\FilamentView::registerRenderHook(
-            \Filament\View\PanelsRenderHook::HEAD_END,
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
             function (): string {
                 if (request()->routeIs('filament.admin.pages.dashboard')) {
                     return <<<'HTML'
@@ -172,5 +179,51 @@ HTML;
                 return '';
             }
         );
+
+        // Register Custom Glass Modal globally
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::BODY_END,
+            fn () => view('components.custom-glass-modal')
+        );
+
+        // Helper for Custom Glass Success Modal
+        $dispatchSuccess = function ($action, $message) {
+            $action->successNotification(null); // Disable default toast
+            // Check if getLivewire exists (it should in Filament context)
+            if (method_exists($action, 'getLivewire')) {
+                $action->getLivewire()->dispatch('open-custom-modal', [
+                    'type' => 'success',
+                    'title' => '¡Éxito!',
+                    'body' => $message,
+                ]);
+            }
+        };
+
+        // Global Action Configurations
+        CreateAction::configureUsing(function (CreateAction $action) use ($dispatchSuccess) {
+            $action->after(fn () => $dispatchSuccess($action, 'Registro creado correctamente'));
+        });
+        
+        EditAction::configureUsing(function (EditAction $action) use ($dispatchSuccess) {
+            $action->after(fn () => $dispatchSuccess($action, 'Registro actualizado correctamente'));
+        });
+
+        DeleteAction::configureUsing(function (DeleteAction $action) use ($dispatchSuccess) {
+            $action
+                ->requiresConfirmation()
+                ->modalHeading('Eliminar registro')
+                ->modalDescription('¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.')
+                ->modalSubmitActionLabel('Sí, eliminar')
+                ->after(fn () => $dispatchSuccess($action, 'Registro eliminado correctamente'));
+        });
+
+        DeleteBulkAction::configureUsing(function (DeleteBulkAction $action) use ($dispatchSuccess) {
+            $action
+                ->requiresConfirmation()
+                ->modalHeading('Eliminar registros')
+                ->modalDescription('¿Estás seguro de que deseas eliminar los registros seleccionados? Esta acción no se puede deshacer.')
+                ->modalSubmitActionLabel('Sí, eliminar todo')
+                ->after(fn () => $dispatchSuccess($action, 'Registros eliminados correctamente'));
+        });
     }
 }

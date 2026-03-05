@@ -13,11 +13,11 @@ use Illuminate\Database\Eloquent\Builder;
 
 class EventualActivities extends BaseWidget
 {
-    protected static ?int $sort = 2;
+    protected static ?int $sort = 3;
 
     protected string $view = 'filament.widgets.eventual-activities';
 
-    protected int | string | array $columnSpan = '1/2';
+    protected int | string | array $columnSpan = 1;
 
     protected ?string $pollingInterval = '30s';
 
@@ -275,7 +275,7 @@ class EventualActivities extends BaseWidget
                         \Illuminate\Support\Facades\Log::info('--- FIN GUARDADO ACTIVIDAD EVENTUAL ---');
                     }),
             ])
-            ->paginated([5, 10, 25, 50]);
+            ->paginated(false);
     }
 
     protected function hasExecutedToday(Activity $activity): bool

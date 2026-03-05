@@ -345,29 +345,33 @@
             
             // Listener específico para PHP Flasher en Livewire v3 (Emulación manual)
             Livewire.on('flasher:render', (data) => {
-                console.log('🔥 Flasher Event Received:', data);
                 const payload = Array.isArray(data) ? data[0] : data;
                 
-                if (typeof flasher !== 'undefined') {
-                    console.log('✅ Flasher JS found. Rendering...');
-                    // Intento 1: API moderna
-                    try {
-                        flasher.render(payload);
-                    } catch (e) {
-                        console.error('❌ Error rendering Flasher:', e);
-                        // Fallback manual si falla el renderizado
-                        if (payload.envelopes && payload.envelopes[0]) {
-                            const env = payload.envelopes[0].notification;
-                            alert(`[Flasher Error Fallback] ${env.title}: ${env.message}`);
+                // Procesar envelopes
+                if (payload.envelopes && Array.isArray(payload.envelopes)) {
+                    payload.envelopes.forEach(envelope => {
+                        const notification = envelope.notification || {};
+                        const type = notification.type || 'info';
+                        const message = notification.message || '';
+                        const title = notification.title || '';
+                        
+                        // Usar Toastr Directamente (Solución Definitiva)
+                        if (typeof toastr !== 'undefined') {
+                            // Mapear método dinámico (success, error, warning, info)
+                            const method = typeof toastr[type] === 'function' ? type : 'info';
+                            
+                            // Aplicar opciones si vienen
+                            if (notification.options) {
+                                toastr.options = { ...toastr.options, ...notification.options };
+                            }
+                            
+                            // Ejecutar Toastr
+                            toastr[method](message, title);
+                        } else {
+                            // Fallback visual extremo
+                            alert(`[Toastr Missing] ${title}: ${message}`);
                         }
-                    }
-                } else {
-                    console.error('❌ Flasher JS global NOT found.');
-                    // Fallback visual simple si la librería no cargó
-                    if (payload.envelopes && payload.envelopes[0]) {
-                        const env = payload.envelopes[0].notification;
-                        alert(`[Flasher Missing Fallback] ${env.title}: ${env.message}`);
-                    }
+                    });
                 }
             });
         });
@@ -377,5 +381,94 @@
     @if(function_exists('flasher_render'))
         {{ flasher_render() }}
     @endif
+
+    {{-- Sección 5: Comparativa de Gráficos (Dashboard) --}}
+    <div class="mt-8 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <h2 class="text-xl font-bold mb-4 text-gray-800">5. Comparativa de Gráficos (Dashboard Execution Trend)</h2>
+        <p class="mb-4 text-gray-600 text-sm">
+            Replicando el gráfico "Execution Trend" usando tres librerías diferentes compatibles con el stack actual (Blade/Livewire).
+            Nota: Se reemplaza <strong>Recharts</strong> (React-only) por <strong>ApexCharts</strong> (Estándar en Laravel/Filament) para evitar configuraciones complejas de React en Blade.
+        </p>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 1. Chart.js -->
+            <div class="bg-gray-50 p-4 rounded border">
+                <h3 class="font-semibold text-center mb-2">Chart.js (Canvas)</h3>
+                <div class="relative h-64 w-full">
+                    <canvas id="chartJsCanvas"></canvas>
+                </div>
+                <div class="mt-2 text-xs text-gray-500">
+                    <ul class="list-disc pl-4">
+                        <li>Ligero y rápido.</li>
+                        <li>Canvas-based (no DOM interactivo).</li>
+                        <li>Estándar en muchos paneles admin.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 2. ApexCharts -->
+            <div class="bg-gray-50 p-4 rounded border">
+                <h3 class="font-semibold text-center mb-2">ApexCharts (SVG)</h3>
+                <div id="apexChart" class="h-64 w-full"></div>
+                <div class="mt-2 text-xs text-gray-500">
+                    <ul class="list-disc pl-4">
+                        <li>Moderno y muy popular en Laravel.</li>
+                        <li>SVG-based (Interactividad superior).</li>
+                        <li>Configuración JSON intuitiva.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 3. D3.js -->
+            <div class="bg-gray-50 p-4 rounded border">
+                <h3 class="font-semibold text-center mb-2">D3.js (Low Level SVG)</h3>
+                <div id="d3Chart" class="h-64 w-full bg-white"></div>
+                <div class="mt-2 text-xs text-gray-500">
+                    <ul class="list-disc pl-4">
+                        <li>Control total pixel-perfect.</li>
+                        <li>Curva de aprendizaje alta.</li>
+                        <li>Más código para el mismo resultado.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Scripts de Gráficos (Vite Assets Compilados) --}}
+    @vite(['resources/js/test-charts.js'])
+
+    {{-- Sección 6: Documentación Comparativa --}}
+    <div class="mt-8 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <h2 class="text-xl font-bold mb-4 text-gray-800">6. Decisión: Custom vs PHP Flasher</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-3">
+                <h3 class="font-bold text-blue-600 border-b pb-2">Opción A: Custom Notifications (Alpine + Tailwind)</h3>
+                <ul class="list-disc pl-5 space-y-2 text-sm text-gray-700">
+                    <li><strong>Pros:</strong> Control absoluto del diseño HTML/CSS. Sin dependencias externas pesadas. Ideal si quieres notificaciones con layouts complejos (botones, inputs, imágenes).</li>
+                    <li><strong>Cons:</strong> Debes mantener la lógica JS (timeouts, stack, animaciones). Puede tener conflictos de renderizado (z-index, overflow) como vimos.</li>
+                    <li><strong>Uso ideal:</strong> Cuando el diseño es muy específico de la marca y no estándar.</li>
+                </ul>
+            </div>
+            
+            <div class="space-y-3">
+                <h3 class="font-bold text-green-600 border-b pb-2">Opción B: PHP Flasher (Librería)</h3>
+                <ul class="list-disc pl-5 space-y-2 text-sm text-gray-700">
+                    <li><strong>Pros:</strong> Estándar de la industria, muy robusto. Maneja automáticamente colas, tipos, y temas. Se integra perfecto con Laravel (sesiones, redirecciones).</li>
+                    <li><strong>Cons:</strong> Dependencia de terceros. Personalización visual limitada a temas predefinidos (o CSS overrides). Requiere configuración correcta de assets.</li>
+                    <li><strong>Uso ideal:</strong> Para aplicaciones administrativas estándar donde la funcionalidad y rapidez de implementación priman sobre el diseño "pixel-perfect" único.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="mt-6 p-4 bg-yellow-50 rounded border border-yellow-200">
+            <h4 class="font-bold text-yellow-800 mb-2">Recomendación Final:</h4>
+            <p class="text-sm text-yellow-900">
+                Para este proyecto administrativo (Filament), recomiendo encarecidamente usar <strong>PHP Flasher (Toastr)</strong>. 
+                Es más estable, requiere menos mantenimiento de código frontend y ofrece una experiencia de usuario familiar y predecible. 
+                La solución Custom es interesante pero propensa a errores sutiles de UI/UX si no se mantiene activamente.
+            </p>
+        </div>
+    </div>
 
 </x-filament-panels::page>

@@ -47,6 +47,14 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::BODY_END,
                 fn () => view('filament.admin.flasher-inject')
             )
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn () => view('filament.admin.session-timeout')
+            )
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn () => \Illuminate\Support\Facades\Blade::render("@vite(['resources/js/filament-dashboard.js'])")
+            )
             ->font(config('hse_theme.font_family', 'Inria Sans'), provider: GoogleFontProvider::class)
             ->favicon(fn () => asset(config('hse_theme.brand.favicon_path', 'logo-pestana.png')) . '?v=2')
             ->topbar(false)
@@ -71,6 +79,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
+                \App\Filament\Widgets\ActivitiesByTypeChart::class,
                 // AccountWidget::class,
                 // FilamentInfoWidget::class,
                 // Widgets específicos desactivados por solicitud del usuario (se usa EventualActivities general)

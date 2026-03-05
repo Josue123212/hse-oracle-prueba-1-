@@ -11,9 +11,11 @@ use Filament\Actions\Action;
 
 class OverdueActivitiesWidget extends BaseWidget
 {
-    protected static ?int $sort = 0; // Top priority
+    protected string $view = 'filament.widgets.overdue-activities-widget';
+
+    protected static ?int $sort = 2; // Position after the chart (same row)
     
-    protected int | string | array $columnSpan = 'full';
+    protected int | string | array $columnSpan = 1;
 
     protected static ?string $heading = 'Ejecuciones Vencidas';
 
@@ -32,7 +34,7 @@ class OverdueActivitiesWidget extends BaseWidget
                     ])
                     ->orderBy('fecha_programada', 'asc')
             )
-            ->heading('⚠️ Ejecuciones Vencidas (Urgente)')
+            ->heading(null)
             ->columns([
                 Tables\Columns\TextColumn::make('activity.nombre')
                     ->label('Actividad')
@@ -48,15 +50,43 @@ class OverdueActivitiesWidget extends BaseWidget
                     ->color('danger')
                     ->weight('bold'),
 
-                Tables\Columns\TextColumn::make('responsable')
-                    ->label('Responsable')
-                    ->state(fn (ActivityExecution $record) => $record->activity->responsable->nombre ?? 'Sin asignar'),
-
                 Tables\Columns\TextColumn::make('estado')
                     ->label('Estado')
                     ->badge(),
             ])
+            ->paginated(false)
             ->actions([
+                \Filament\Actions\ViewAction::make('ver')
+                    ->label('Ver')
+                    ->icon('heroicon-o-eye')
+                    ->color('gray')
+                    ->button()
+                    ->infolist([
+                        \Filament\Schemas\Components\Section::make('Detalles')
+                            ->schema([
+                                \Filament\Schemas\Components\Grid::make(2)
+                                    ->schema([
+                                        \Filament\Infolists\Components\TextEntry::make('activity.nombre')
+                                            ->label('Actividad')
+                                            ->weight('bold'),
+                                        \Filament\Infolists\Components\TextEntry::make('activity.tipo')
+                                            ->label('Tipo')
+                                            ->formatStateUsing(fn ($state) => ucfirst($state))
+                                            ->badge(),
+                                        \Filament\Infolists\Components\TextEntry::make('fecha_programada')
+                                            ->label('Fecha Programada')
+                                            ->date('d/m/Y')
+                                            ->color('danger'),
+                                        \Filament\Infolists\Components\TextEntry::make('activity.responsable.nombre')
+                                            ->label('Responsable')
+                                            ->placeholder('Sin asignar'),
+                                        \Filament\Infolists\Components\TextEntry::make('activity.descripcion')
+                                            ->label('Descripción')
+                                            ->columnSpanFull()
+                                            ->placeholder('Sin descripción'),
+                                    ]),
+                            ]),
+                    ]),
                 Action::make('regularizar')
                     ->label('Regularizar')
                     ->icon('heroicon-o-play')

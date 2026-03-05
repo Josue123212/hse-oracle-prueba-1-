@@ -25,7 +25,7 @@ abstract class BaseScheduledActivityWidget extends BaseWidget
 
     protected int | string | array $columnSpan = 1;
 
-    protected static ?int $sort = 1;
+    protected static ?int $sort = 3;
 
     protected ?string $pollingInterval = '30s';
 
@@ -142,7 +142,8 @@ abstract class BaseScheduledActivityWidget extends BaseWidget
                     ->visible(fn (ActivityExecution $record) => !empty($record->evidencia)),
                 
                 $this->getIniciarAction(),
-            ]);
+            ])
+            ->paginated(false);
     }
 
     protected function getTableColumns(): array

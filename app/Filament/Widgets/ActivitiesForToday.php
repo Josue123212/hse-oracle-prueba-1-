@@ -11,9 +11,9 @@ use Livewire\Attributes\On;
 
 class ActivitiesForToday extends BaseWidget
 {
-    protected int | string | array $columnSpan = '1/2';
+    protected int | string | array $columnSpan = 1;
 
-    protected static ?int $sort = 1;
+    protected static ?int $sort = 3;
 
     protected ?string $pollingInterval = '30s';
 

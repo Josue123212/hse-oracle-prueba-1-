@@ -2,25 +2,25 @@
 
 namespace App\Policies;
 
-use App\Models\Notification;
+use App\Models\Alert;
 use App\Models\User;
 
-class NotificationPolicy
+class AlertPolicy
 {
     /**
      * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
-        return true; // Users should see their own notifications.
+        return true; // Users should see their own alerts.
     }
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, Notification $notification): bool
+    public function view(User $user, Alert $alert): bool
     {
-        return $user->id === $notification->user_id || $user->isAdmin();
+        return $user->id === $alert->user_id || $user->isAdmin();
     }
 
     /**
@@ -28,31 +28,31 @@ class NotificationPolicy
      */
     public function create(User $user): bool
     {
-        // Notifications are usually system generated, but maybe Admins can broadcast.
+        // Alerts are usually system generated, but maybe Admins can broadcast.
         return $user->isAdmin();
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Notification $notification): bool
+    public function update(User $user, Alert $alert): bool
     {
         // Usually updating means marking as read.
-        return $user->id === $notification->user_id || $user->isAdmin();
+        return $user->id === $alert->user_id || $user->isAdmin();
     }
 
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, Notification $notification): bool
+    public function delete(User $user, Alert $alert): bool
     {
-        return $user->id === $notification->user_id || $user->isAdmin();
+        return $user->id === $alert->user_id || $user->isAdmin();
     }
 
     /**
      * Determine whether the user can restore the model.
      */
-    public function restore(User $user, Notification $notification): bool
+    public function restore(User $user, Alert $alert): bool
     {
         return $user->isAdmin();
     }
@@ -60,7 +60,7 @@ class NotificationPolicy
     /**
      * Determine whether the user can permanently delete the model.
      */
-    public function forceDelete(User $user, Notification $notification): bool
+    public function forceDelete(User $user, Alert $alert): bool
     {
         return $user->isAdmin();
     }

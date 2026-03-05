@@ -26,6 +26,7 @@ use Filament\Forms\Components\Placeholder;
 use App\Models\Location;
 use Illuminate\Support\Facades\Storage;
 use Filament\Forms\Components\FileUpload;
+use Illuminate\Database\Eloquent\Model;
 
 class InspectionsTable
 {
@@ -283,7 +284,11 @@ class InspectionsTable
                     ->modalSubmitActionLabel('Guardar Cambios'),
 
                 ViewAction::make(),
-                EditAction::make(),
+                EditAction::make()
+                    ->using(function (Model $record, array $data): Model {
+                        $service = new \App\Services\ActivityService();
+                        return $service->updateWithType($record, $data);
+                    }),
                 DeleteAction::make(),
             ])
             ->bulkActions([

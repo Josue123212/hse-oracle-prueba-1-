@@ -8,10 +8,16 @@
         class="fi-wi-stats-overview-stat-chart-container relative overflow-hidden"
     >
         <div 
-            class="fi-wi-stats-overview-stat-chart-container relative overflow-hidden"
-            style="max-height: 350px; overflow-y: auto; overflow-x: auto;"
+            class="eventual-activities-table-wrapper relative"
+            style="max-height: 350px; overflow: auto;"
         >
             {{ $this->table }}
         </div>
+        <style>
+            .eventual-activities-table-wrapper .fi-ta-content,
+            .eventual-activities-table-wrapper .fi-ta-content-ctn {
+                overflow: visible !important;
+            }
+        </style>
     </x-filament::section>
 </x-filament-widgets::widget>

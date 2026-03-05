@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Forms\Components\Field;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\Model;
 
 abstract class BaseActivityForm
 {
@@ -56,22 +57,72 @@ abstract class BaseActivityForm
                 ->schema([
                     Select::make('program_id')
                         ->label('Programa QHSE')
-                        ->relationship('program', 'nombre')
+                        ->options(\App\Models\Program::pluck('nombre', 'id'))
+                        ->default(function ($record) {
+                            // Si es una Actividad (padre)
+                            if ($record instanceof \App\Models\Activity) {
+                                return $record->component?->program_id;
+                            }
+                            // Si es un Satélite (hijo)
+                            if ($record instanceof \Illuminate\Database\Eloquent\Model) {
+                                return $record->program_id ?? $record->activity?->component?->program_id;
+                            }
+                            return null;
+                        })
+                        ->formatStateUsing(function ($state, $record) {
+                            if ($state) return $state;
+                            
+                            if ($record instanceof \App\Models\Activity) {
+                                return $record->component?->program_id;
+                            }
+                            
+                            if ($record instanceof \Illuminate\Database\Eloquent\Model) {
+                                return $record->program_id ?? $record->activity?->component?->program_id;
+                            }
+                            return null;
+                        })
                         ->searchable()
                         ->preload()
                         ->live()
-                        ->required(),
+                        ->required()
+                        ->dehydrated(false) // No guardar este campo en la BD, solo sirve para filtrar
+                        ->afterStateUpdated(fn (callable $set) => $set('program_component_id', null)),
                     
                     Select::make('program_component_id')
                         ->label('Componente / Elemento')
-                        ->options(function (Get $get) {
+                        ->options(function (Get $get, ?Model $record) {
+                            // Intentar obtener del estado del formulario (cuando el usuario cambia el programa)
                             $programId = $get('program_id');
+                            
+                            // Si no hay en el estado, intentar deducir del registro actual (carga inicial)
+                            if (!$programId && $record) {
+                                if ($record instanceof \App\Models\Activity) {
+                                    $programId = $record->component?->program_id;
+                                } elseif ($record instanceof \Illuminate\Database\Eloquent\Model) {
+                                    $programId = $record->program_id ?? $record->activity?->component?->program_id;
+                                }
+                            }
+                            
                             if (!$programId) return [];
+                            
                             return \App\Models\ProgramComponent::where('program_id', $programId)
                                 ->doesntHave('children')
                                 ->with('parent')
                                 ->get()
                                 ->pluck('full_name', 'id');
+                        })
+                        ->default(fn ($record) => $record?->program_component_id ?? $record?->activity?->program_component_id)
+                        ->formatStateUsing(function ($state, $record) {
+                            if ($state) return $state;
+                            
+                            if ($record instanceof \App\Models\Activity) {
+                                return $record->program_component_id;
+                            }
+                            
+                            if ($record instanceof \Illuminate\Database\Eloquent\Model) {
+                                return $record->program_component_id ?? $record->activity?->program_component_id;
+                            }
+                            return null;
                         })
                         ->searchable()
                         ->preload()
@@ -100,6 +151,12 @@ abstract class BaseActivityForm
                         ->label('Fecha Inicial')
                         ->required(fn (Get $get) => $get('frecuencia') !== 'eventual')
                         ->visible(fn (Get $get) => $get('frecuencia') !== 'eventual')
+                        ->default(fn ($record) => $record instanceof \App\Models\Activity ? $record->fecha_inicio : ($record?->fecha_programada ?? $record?->activity?->fecha_inicio))
+                        ->formatStateUsing(function ($state, $record) {
+                            if ($state) return $state;
+                            if ($record instanceof \App\Models\Activity) return $record->fecha_inicio;
+                            return $record?->fecha_programada ?? $record?->activity?->fecha_inicio;
+                        })
                         ->live(),
                 ]),
         ];
@@ -142,14 +199,16 @@ abstract class BaseActivityForm
                             $set('veces_al_anio', $map[$state] ?? 1);
                             $set('ejecuciones_realizadas', 0);
                         })
-                        ->required(),
+                        ->required()
+                        ->dehydrated(),
 
                     TextInput::make('veces_al_anio')
                         ->label('Veces al Año')
                         ->numeric()
                         ->default(fn ($record) => $record?->activity?->veces_al_anio ?? 1)
                         ->formatStateUsing(fn ($state, $record) => $state ?? $record?->activity?->veces_al_anio ?? 1)
-                        ->readOnly(),
+                        ->readOnly()
+                        ->dehydrated(),
                     
                     TextInput::make('detalle_frecuencia')
                         ->label('Detalle de Eventualidad')

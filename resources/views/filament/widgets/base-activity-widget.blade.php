@@ -9,10 +9,16 @@
         </div>
 
         <div 
-            class="fi-wi-stats-overview-stat-chart-container relative overflow-hidden"
-            style="max-height: 400px; overflow-y: auto; overflow-x: hidden;"
+            class="base-activity-widget-table-wrapper relative"
+            style="max-height: 400px; overflow: auto;"
         >
             {{ $this->table }}
         </div>
+        <style>
+            .base-activity-widget-table-wrapper .fi-ta-content,
+            .base-activity-widget-table-wrapper .fi-ta-content-ctn {
+                overflow: visible !important;
+            }
+        </style>
     </x-filament::section>
 </x-filament-widgets::widget>
