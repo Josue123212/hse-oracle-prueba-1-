@@ -15,15 +15,26 @@ class ListOperationalControls extends ListRecords
     protected function getHeaderWidgets(): array
     {
         return [
+            \App\Filament\Resources\OperationalControls\Widgets\OperationalControlStatsOverview::class,
             OperationalControlsForToday::class,
             EventualOperationalControls::class,
         ];
     }
 
+    public function getHeaderWidgetsColumns(): int | array
+    {
+        return 2;
+    }
+
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()
+                ->label('Crear Control Operacional')
+                ->using(function (array $data, string $model): \Illuminate\Database\Eloquent\Model {
+                    $service = new \App\Services\ActivityService();
+                    return $service->createWithType($data, 'control_operacional');
+                }),
         ];
     }
 }

@@ -15,6 +15,7 @@ class ListDrills extends ListRecords
     protected function getHeaderWidgets(): array
     {
         return [
+            \App\Filament\Resources\Drills\Widgets\DrillStatsOverview::class,
             DrillsForToday::class,
             EventualDrills::class,
         ];
@@ -23,7 +24,17 @@ class ListDrills extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()
+                ->label('Crear Simulacro')
+                ->using(function (array $data, string $model): \Illuminate\Database\Eloquent\Model {
+                    $service = new \App\Services\ActivityService();
+                    return $service->createWithType($data, 'simulacro');
+                }),
         ];
+    }
+
+    public function getHeaderWidgetsColumns(): int | array
+    {
+        return 2;
     }
 }

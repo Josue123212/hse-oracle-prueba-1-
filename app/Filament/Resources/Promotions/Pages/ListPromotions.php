@@ -15,6 +15,7 @@ class ListPromotions extends ListRecords
     protected function getHeaderWidgets(): array
     {
         return [
+            \App\Filament\Resources\Promotions\Widgets\PromotionStatsOverview::class,
             PromotionsForToday::class,
             EventualPromotions::class,
         ];
@@ -23,7 +24,17 @@ class ListPromotions extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()
+                ->label('Crear Promoción')
+                ->using(function (array $data, string $model): \Illuminate\Database\Eloquent\Model {
+                    $service = new \App\Services\ActivityService();
+                    return $service->createWithType($data, 'promocion');
+                }),
         ];
+    }
+
+    public function getHeaderWidgetsColumns(): int | array
+    {
+        return 2;
     }
 }

@@ -34,6 +34,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Placeholder;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Facades\Auth;
 
 class ActivityExecutionResource extends Resource
 {
@@ -100,6 +101,7 @@ class ActivityExecutionResource extends Resource
                                         if (is_array($evidences)) {
                                             foreach ($evidences as $path) {
                                                 try {
+                                                    /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
                                                     $disk = Storage::disk('google');
                                                     $files[] = [
                                                         'path' => $path,
@@ -322,7 +324,7 @@ class ActivityExecutionResource extends Resource
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['value'],
-                            fn (Builder $query, $programId) => $query->whereHas('activity', fn (Builder $query) => $query->where('program_id', $programId))
+                            fn (Builder $query, $programId) => $query->whereHas('activity.component', fn (Builder $query) => $query->where('program_id', $programId))
                         );
                     }),
                 SelectFilter::make('tipo')
@@ -364,6 +366,7 @@ class ActivityExecutionResource extends Resource
                         if (is_array($evidences)) {
                             foreach ($evidences as $path) {
                                 try {
+                                    /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
                                     $disk = Storage::disk('google');
                                     $files[] = [
                                         'path' => $path,
@@ -406,7 +409,7 @@ class ActivityExecutionResource extends Resource
                         
                         if (!empty($newEvidences)) {
                             $service = app(\App\Services\EvidenceStorageService::class);
-                            $userId = auth()->id() ?? 0;
+                            $userId = Auth::id() ?? 0;
                             
                             $newEvidences = is_array($newEvidences) ? $newEvidences : [$newEvidences];
 

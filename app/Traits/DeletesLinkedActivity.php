@@ -3,7 +3,10 @@
 namespace App\Traits;
 
 use App\Models\Activity;
+use App\Models\Location;
+use App\Models\Position;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 trait DeletesLinkedActivity
 {

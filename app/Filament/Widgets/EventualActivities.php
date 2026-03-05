@@ -33,6 +33,9 @@ class EventualActivities extends BaseWidget
             ->query(
                 Activity::query()
                     ->where('frecuencia', 'eventual')
+                    ->with(['executions' => function ($query) {
+                        $query->whereDate('created_at', now());
+                    }])
             )
             ->columns([
                 Tables\Columns\TextColumn::make('nombre')
@@ -272,13 +275,11 @@ class EventualActivities extends BaseWidget
                         \Illuminate\Support\Facades\Log::info('--- FIN GUARDADO ACTIVIDAD EVENTUAL ---');
                     }),
             ])
-            ->paginated(false);
+            ->paginated([5, 10, 25, 50]);
     }
 
     protected function hasExecutedToday(Activity $activity): bool
     {
-        return $activity->executions()
-            ->whereDate('created_at', now())
-            ->exists();
+        return $activity->executions->isNotEmpty();
     }
 }

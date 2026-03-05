@@ -19,16 +19,26 @@ class ListTrainings extends ListRecords
     protected function getHeaderWidgets(): array
     {
         return [
+            TrainingStatsOverview::class,
             TrainingsForToday::class,
             EventualTrainings::class,
-            TrainingStatsOverview::class,
         ];
     }
 
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()
+                ->label('Crear Capacitación')
+                ->using(function (array $data, string $model): \Illuminate\Database\Eloquent\Model {
+                    $service = new \App\Services\ActivityService();
+                    return $service->createWithType($data, 'capacitacion');
+                }),
         ];
+    }
+
+    public function getHeaderWidgetsColumns(): int | array
+    {
+        return 2;
     }
 }

@@ -137,7 +137,9 @@ class Repository extends Page
             $folderName = $program ? $program->nombre : 'Desconocido';
             
             // Obtener actividades/documentos de este programa
-            $activities = Activity::where('program_id', $folderId)
+            $activities = Activity::whereHas('component', function ($query) use ($folderId) {
+                $query->where('program_id', $folderId);
+            })
                 ->with(['executions' => fn($q) => $q->whereNotNull('evidencia')])
                 ->when($this->search, fn ($q) => $q->where('nombre', 'like', "%{$this->search}%"))
                 ->get();

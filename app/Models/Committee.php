@@ -7,10 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Traits\DeletesLinkedActivity;
 use App\Traits\FilteredByProgram;
+use App\Traits\ProxiesActivityFields;
 
 class Committee extends Model
 {
-    use DeletesLinkedActivity, FilteredByProgram;
+    use DeletesLinkedActivity, FilteredByProgram, ProxiesActivityFields;
+
+    protected $proxiedFields = ['location_id', 'responsable_delegado_id', 'apoyo'];
 
     protected $guarded = [];
 

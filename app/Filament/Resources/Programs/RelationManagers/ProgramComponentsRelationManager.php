@@ -91,6 +91,7 @@ class ProgramComponentsRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make()
+                    ->label('Crear Componente')
                     ->mutateFormDataUsing(function (array $data, $livewire): array {
                         $data['program_id'] = $livewire->getOwnerRecord()->id;
                         return $data;

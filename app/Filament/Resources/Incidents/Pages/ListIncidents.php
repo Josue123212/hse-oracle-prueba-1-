@@ -15,6 +15,7 @@ class ListIncidents extends ListRecords
     protected function getHeaderWidgets(): array
     {
         return [
+            \App\Filament\Resources\Incidents\Widgets\IncidentStatsOverview::class,
             OpenIncidents::class,
             EventualIncidents::class,
         ];
@@ -23,7 +24,17 @@ class ListIncidents extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()
+                ->label('Crear Incidente')
+                ->using(function (array $data, string $model): \Illuminate\Database\Eloquent\Model {
+                    $service = new \App\Services\ActivityService();
+                    return $service->createWithType($data, 'incidente');
+                }),
         ];
+    }
+
+    public function getHeaderWidgetsColumns(): int | array
+    {
+        return 2;
     }
 }

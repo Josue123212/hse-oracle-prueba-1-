@@ -43,6 +43,10 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::SIDEBAR_NAV_START,
                 fn () => view('filament.admin.sidebar-program-switcher')
             )
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn () => view('filament.admin.flasher-inject')
+            )
             ->font(config('hse_theme.font_family', 'Inria Sans'), provider: GoogleFontProvider::class)
             ->favicon(fn () => asset(config('hse_theme.brand.favicon_path', 'logo-pestana.png')) . '?v=2')
             ->topbar(false)

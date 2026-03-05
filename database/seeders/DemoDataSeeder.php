@@ -20,8 +20,7 @@ class DemoDataSeeder extends Seeder
         DB::transaction(function () {
             // Ensure we have a PositionType, Position and Location
             $posType = \App\Models\PositionType::firstOrCreate(
-                ['nombre' => 'Administrativo'],
-                ['descripcion' => 'Personal administrativo']
+                ['nombre' => 'Administrativo']
             );
 
             $position = Position::firstOrCreate(
@@ -56,14 +55,14 @@ class DemoDataSeeder extends Seeder
                     'descripcion' => 'Gestión de riesgos y prevención de accidentes',
                     'objetivo_general' => 'Reducir la accidentabilidad en un 20%',
                     'anio' => 2026,
-                    'estado' => 'activo',
+                    'estado' => 'aprobado',
                 ],
                 [
                     'nombre' => 'Programa de Salud Ocupacional 2026',
                     'descripcion' => 'Vigilancia de la salud de los trabajadores',
                     'objetivo_general' => 'Mejorar el bienestar laboral',
                     'anio' => 2026,
-                    'estado' => 'activo',
+                    'estado' => 'aprobado',
                 ]
             ];
 

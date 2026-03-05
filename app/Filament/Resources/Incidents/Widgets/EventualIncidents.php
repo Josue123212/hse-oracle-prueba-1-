@@ -10,9 +10,13 @@ use Filament\Widgets\TableWidget as BaseWidget;
 use Filament\Actions\Action;
 use Livewire\Attributes\On;
 
+use Filament\Tables\Columns\Layout\Stack;
+use Filament\Tables\Columns\Layout\Split;
+use Filament\Support\Enums\FontWeight;
+
 class EventualIncidents extends BaseWidget
 {
-    protected int | string | array $columnSpan = 'full';
+    protected int | string | array $columnSpan = 1;
 
     protected static ?int $sort = 2;
 
@@ -36,14 +40,34 @@ class EventualIncidents extends BaseWidget
                     })
                     ->where('frecuencia', 'eventual')
             )
+            ->heading('Actividades Eventuales - Incidentes')
+            ->contentGrid([
+                'md' => 1,
+                'xl' => 1,
+            ])
+            ->recordAction('view')
             ->columns([
-                Tables\Columns\TextColumn::make('nombre')
-                    ->label('Actividad / Incidente')
-                    ->description(fn (Activity $record) => $record->incident ? "Ocurrió: {$record->incident->fecha_ocurrencia->format('d/m/Y')}" : ($record->descripcion ?? 'Sin descripción'))
-                    ->weight('bold')
-                    ->wrap(),
+                Stack::make([
+                    Tables\Columns\TextColumn::make('nombre')
+                        ->label('Actividad')
+                        ->weight(FontWeight::Bold)
+                        ->size('lg')
+                        ->searchable(),
+                    
+                    Tables\Columns\TextColumn::make('descripcion')
+                        ->label('Descripción')
+                        ->limit(50)
+                        ->color('gray'),
+
+                    Split::make([
+                        Tables\Columns\TextColumn::make('frecuencia')
+                            ->badge()
+                            ->color('warning'),
+                    ]),
+                ])->space(3),
             ])
             ->actions([
+                \Filament\Actions\ViewAction::make(),
                 Action::make('iniciar')
                     ->label(fn (Activity $record) => $this->hasExecutedToday($record) ? 'Completado Hoy' : 'Iniciar')
                     ->icon(fn (Activity $record) => $this->hasExecutedToday($record) ? 'heroicon-o-check-circle' : 'heroicon-o-play')

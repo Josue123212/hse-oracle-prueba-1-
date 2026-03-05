@@ -7,10 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Traits\DeletesLinkedActivity;
 use App\Traits\FilteredByProgram;
+use App\Traits\ProxiesActivityFields;
 
 class Inspection extends Model
 {
-    use DeletesLinkedActivity, FilteredByProgram;
+    use DeletesLinkedActivity, FilteredByProgram, ProxiesActivityFields;
+
+    protected $proxiedFields = ['responsable_delegado_id', 'apoyo'];
 
     protected $fillable = [
         'program_id',
@@ -29,6 +32,8 @@ class Inspection extends Model
         'ejecuciones_realizadas',
         'detalle_frecuencia',
         'proxima_ejecucion',
+        'responsable_delegado_id',
+        'apoyo',
     ];
 
     protected $casts = [

@@ -19,16 +19,26 @@ class ListAudits extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\CreateAction::make()
+                ->label('Crear Auditoría')
+                ->using(function (array $data, string $model): \Illuminate\Database\Eloquent\Model {
+                    $service = new \App\Services\ActivityService();
+                    return $service->createWithType($data, 'auditoria');
+                }),
         ];
     }
 
     protected function getHeaderWidgets(): array
     {
         return [
+            AuditStatsOverview::class,
             AuditsForToday::class,
             EventualAudits::class,
-            AuditStatsOverview::class,
         ];
+    }
+
+    public function getHeaderWidgetsColumns(): int | array
+    {
+        return 2;
     }
 }

@@ -110,8 +110,10 @@ class ElementsRelationManager extends RelationManager
                 //
             ])
             ->headerActions([
-                CreateAction::make(),
-                AssociateAction::make(),
+                CreateAction::make()
+                    ->label('Crear Elemento'),
+                AssociateAction::make()
+                    ->label('Asociar'),
             ])
             ->recordActions([
                 ViewAction::make(),

@@ -30,7 +30,7 @@ class IncidentsTable
     {
         return $table
             ->columns([
-                TextColumn::make('activity.program.nombre')
+                TextColumn::make('activity.component.program.nombre')
                     ->label('Programa')
                     ->sortable()
                     ->badge()

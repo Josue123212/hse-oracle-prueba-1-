@@ -19,16 +19,26 @@ class ListInspections extends ListRecords
     protected function getHeaderWidgets(): array
     {
         return [
+            InspectionStatsOverview::class,
             InspectionsForToday::class,
             EventualInspections::class,
-            InspectionStatsOverview::class,
         ];
     }
 
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()
+                ->label('Crear Inspección')
+                ->using(function (array $data, string $model): \Illuminate\Database\Eloquent\Model {
+                    $service = new \App\Services\ActivityService();
+                    return $service->createWithType($data, 'inspeccion');
+                }),
         ];
+    }
+
+    public function getHeaderWidgetsColumns(): int | array
+    {
+        return 2;
     }
 }

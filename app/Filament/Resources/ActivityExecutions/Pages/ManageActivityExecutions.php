@@ -23,6 +23,7 @@ class ManageActivityExecutions extends ManageRecords
     {
         return [
             CreateAction::make()
+                ->label('Crear Ejecución')
                 ->mutateFormDataUsing(function (array $data): array {
                     $newEvidences = $data['new_evidencia'] ?? [];
                     $finalPaths = [];
@@ -68,9 +69,9 @@ class ManageActivityExecutions extends ManageRecords
         return [
             'all' => Tab::make('Todas'),
             'programadas' => Tab::make('Programadas')
-                ->modifyQueryUsing(fn (Builder $query) => $query->whereNotNull('fecha_programada')),
+                ->modifyQueryUsing(fn (Builder $query) => $query->whereHas('activity', fn ($q) => $q->where('frecuencia', '!=', 'eventual'))),
             'eventuales' => Tab::make('Eventuales')
-                ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('fecha_programada')),
+                ->modifyQueryUsing(fn (Builder $query) => $query->whereHas('activity', fn ($q) => $q->where('frecuencia', 'eventual'))),
         ];
     }
 }

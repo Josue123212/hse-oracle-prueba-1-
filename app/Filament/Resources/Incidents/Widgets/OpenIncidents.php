@@ -9,11 +9,15 @@ use Filament\Widgets\TableWidget as BaseWidget;
 use Filament\Actions\Action;
 use Livewire\Attributes\On;
 
+use Filament\Tables\Columns\Layout\Stack;
+use Filament\Tables\Columns\Layout\Split;
+use Filament\Support\Enums\FontWeight;
+
 class OpenIncidents extends BaseWidget
 {
     use \App\Filament\Traits\HasEvidencePreview;
 
-    protected int | string | array $columnSpan = 'full';
+    protected int | string | array $columnSpan = 1;
 
     protected static ?int $sort = 1;
 
@@ -42,34 +46,42 @@ class OpenIncidents extends BaseWidget
                     ])
             )
             ->heading('Incidentes / Investigaciones para Hoy')
+            ->contentGrid([
+                'md' => 1,
+                'xl' => 1,
+            ])
+            ->recordAction('view')
             ->columns([
-                Tables\Columns\TextColumn::make('activity.program.nombre')
-                    ->label('Programa')
-                    ->badge()
-                    ->color('info'),
-                Tables\Columns\TextColumn::make('activity.nombre')
-                    ->label('Incidente / Actividad')
-                    ->weight('bold')
-                    ->searchable()
-                    ->description(fn (ActivityExecution $record) => $record->activity->incident ? "Ocurrió: {$record->activity->incident->fecha_ocurrencia->format('d/m/Y')}" : "Sin fecha"),
-                Tables\Columns\TextColumn::make('activity.incident.titulo')
-                    ->label('Título del Incidente')
-                    ->limit(30),
-                Tables\Columns\TextColumn::make('progreso')
-                    ->label('Progreso')
-                    ->state(function (ActivityExecution $record): string {
-                        if ($record->activity) {
-                            return "{$record->activity->ejecuciones_realizadas} / {$record->activity->veces_al_anio}";
-                        }
-                        return "N/A";
-                    })
-                    ->badge()
-                    ->color('info'),
-                Tables\Columns\TextColumn::make('estado')
-                    ->label('Estado')
-                    ->badge(),
+                Stack::make([
+                    Tables\Columns\TextColumn::make('activity.component.program.nombre')
+                        ->label('Programa')
+                        ->badge()
+                        ->color('info'),
+                    
+                    Tables\Columns\TextColumn::make('activity.nombre')
+                        ->label('Incidente / Actividad')
+                        ->weight(FontWeight::Bold)
+                        ->size('lg')
+                        ->searchable(),
+                    
+                    Tables\Columns\TextColumn::make('activity.incident.titulo')
+                        ->label('Título')
+                        ->limit(30)
+                        ->color('gray'),
+
+                    Split::make([
+                        Tables\Columns\TextColumn::make('progreso')
+                            ->state(fn (ActivityExecution $record) => $record->activity ? "{$record->activity->ejecuciones_realizadas} / {$record->activity->veces_al_anio}" : "N/A")
+                            ->badge()
+                            ->color('info'),
+                        
+                        Tables\Columns\TextColumn::make('estado')
+                            ->badge(),
+                    ]),
+                ])->space(3),
             ])
             ->actions([
+                \Filament\Actions\ViewAction::make(),
                 \Filament\Actions\Action::make('ver_evidencias')
                     ->icon('heroicon-o-folder-open')
                     ->label('Evidencias')

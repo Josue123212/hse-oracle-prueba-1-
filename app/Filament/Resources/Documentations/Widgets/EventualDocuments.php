@@ -3,135 +3,89 @@
 namespace App\Filament\Resources\Documentations\Widgets;
 
 use App\Models\Activity;
-use App\Models\ActivityExecution;
 use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Widgets\TableWidget as BaseWidget;
-use Filament\Actions\Action;
-use Livewire\Attributes\On;
+use App\Filament\Widgets\BaseEventualActivityWidget;
+use Filament\Tables\Columns\Layout\Stack;
+use Filament\Tables\Columns\Layout\Split;
+use Filament\Support\Enums\FontWeight;
 
-class EventualDocuments extends BaseWidget
+class EventualDocuments extends BaseEventualActivityWidget
 {
-    protected int | string | array $columnSpan = 'full';
-
-    protected static ?int $sort = 2;
-
-    protected static ?string $heading = 'Actividades Eventuales - Documentación';
-
-    protected ?string $pollingInterval = '30s';
-
-    #[On('activity-executed')]
-    public function refresh(): void
+    protected function getActivityType(): string
     {
+        return 'documentacion';
     }
 
-    public function table(Table $table): Table
+    protected function getActivityLabel(): string
     {
-        return $table
-            ->query(
-                Activity::query()
-                    ->where(function ($query) {
-                        $query->where('tipo', 'documentacion')
-                              ->orWhereHas('documentation');
-                    })
-                    ->where('frecuencia', 'eventual')
-            )
-            ->columns([
+        return 'Documento';
+    }
+
+    protected function getHeadingTitle(): string
+    {
+        return 'Actividades Eventuales - Documentación';
+    }
+
+    protected function getObservacionLabel(): string
+    {
+        return 'Observaciones / Cambios';
+    }
+
+    protected function getEvidenciaLabel(): string
+    {
+        return 'Archivo del Documento';
+    }
+
+    protected function modifyQuery(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->with(['documentation'])
+            ->where(function ($query) {
+                $query->where('tipo', 'documentacion')
+                      ->orWhereHas('documentation');
+            });
+    }
+
+    protected function getTableColumns(): array
+    {
+        return [
+            Stack::make([
                 Tables\Columns\TextColumn::make('nombre')
-                    ->label('Actividad / Documento')
-                    ->description(fn (Activity $record) => $record->documentation ? "Versión: {$record->documentation->version}" : ($record->descripcion ?? 'Sin descripción'))
-                    ->weight('bold')
-                    ->wrap(),
-            ])
-            ->actions([
-                Action::make('iniciar')
-                    ->label(fn (Activity $record) => $this->hasExecutedToday($record) ? 'Completado Hoy' : 'Iniciar')
-                    ->icon(fn (Activity $record) => $this->hasExecutedToday($record) ? 'heroicon-o-check-circle' : 'heroicon-o-play')
-                    ->color(fn (Activity $record) => $this->hasExecutedToday($record) ? 'gray' : 'success')
-                    ->disabled(fn (Activity $record) => $this->hasExecutedToday($record))
-                    ->button()
-                    ->form([
-                        \Filament\Forms\Components\Textarea::make('observacion')
-                            ->label('Observaciones / Cambios')
-                            ->rows(3)
-                            ->columnSpanFull(),
-                        \Filament\Forms\Components\FileUpload::make('evidencia')
-                            ->label('Archivo del Documento')
-                            ->disk('public') // Cambiamos a disco local temporalmente
-                            ->directory('temp-uploads') // Directorio temporal local
-                            ->visibility('private')
-                            ->columnSpanFull(),
+                    ->label('Documento')
+                    ->weight(FontWeight::Bold)
+                    ->size('lg')
+                    ->searchable(),
+                
+                Tables\Columns\TextColumn::make('descripcion')
+                    ->label('Descripción')
+                    ->limit(50)
+                    ->color('gray'),
 
-                        \Filament\Schemas\Components\Section::make('Detalles del Documento')
-                            ->schema([
-                                \Filament\Schemas\Components\Grid::make(2)
-                                    ->schema([
-                                        \Filament\Forms\Components\TextInput::make('data.version_actual')
-                                            ->label('Versión Actualizada'),
-                                        \Filament\Forms\Components\DatePicker::make('data.fecha_aprobacion')
-                                            ->label('Fecha Aprobación')
-                                            ->default(now()),
-                                    ]),
-                            ]),
-                    ])
-                    ->modalHeading('Ejecutar Documentación Eventual')
-                    ->modalSubmitActionLabel('Guardar')
-                    ->action(function (Activity $record, array $data) {
-                        $evidenciaLocalPath = $data['evidencia'] ?? null;
-                        $finalDrivePath = null;
-                        
-                        if ($evidenciaLocalPath) {
-                            $localDisk = \Illuminate\Support\Facades\Storage::disk('public');
-                            $googleDisk = \Illuminate\Support\Facades\Storage::disk('google');
-                            
-                            if ($localDisk->exists($evidenciaLocalPath)) {
-                                $targetDirectory = \App\Services\DrivePathGenerator::generate($record);
-                                $fileName = basename($evidenciaLocalPath);
-                                $targetPath = trim($targetDirectory, '/') . '/' . $fileName;
-                                
-                                try {
-                                    if (!$googleDisk->exists($targetDirectory)) {
-                                         $googleDisk->makeDirectory($targetDirectory);
-                                    }
-                                    
-                                    $fileContents = $localDisk->get($evidenciaLocalPath);
-                                    $googleDisk->put($targetPath, $fileContents);
-                                    
-                                    if ($googleDisk->exists($targetPath)) {
-                                        $finalDrivePath = $targetPath;
-                                        $localDisk->delete($evidenciaLocalPath);
-                                    }
-                                } catch (\Exception $e) {
-                                    \Illuminate\Support\Facades\Log::error("Error moviendo archivo: " . $e->getMessage());
-                                }
-                            }
-                        }
+                Split::make([
+                    Tables\Columns\TextColumn::make('documentation.version')
+                        ->default('v1.0')
+                        ->formatStateUsing(fn ($state) => "v{$state}")
+                        ->badge()
+                        ->color('info'),
 
-                        ActivityExecution::create([
-                            'activity_id' => $record->id,
-                            'observacion' => $data['observacion'] ?? null,
-                            'evidencia' => $finalDrivePath,
-                            'estado' => \App\Enums\ActivityState::EJECUTADO,
-                            'fecha_ejecucion_real' => now(),
-                            'fecha_programada' => null,
-                            'data' => $data['data'] ?? [],
-                        ]);
-                        
-                        \Filament\Notifications\Notification::make()
-                            ->title('Documentación Eventual Ejecutada')
-                            ->success()
-                            ->send();
-
-                        $this->dispatch('activity-executed');
-                    }),
-            ])
-            ->paginated(false);
+                    Tables\Columns\TextColumn::make('frecuencia')
+                        ->badge()
+                        ->color('warning'),
+                ]),
+            ])->space(3),
+        ];
     }
 
-    protected function hasExecutedToday(Activity $activity): bool
+    protected function getIniciaFormDetails(): array
     {
-        return $activity->executions()
-            ->whereDate('created_at', now())
-            ->exists();
+        return [
+            \Filament\Schemas\Components\Grid::make(2)
+                ->schema([
+                    \Filament\Forms\Components\Textarea::make('data.notas')
+                        ->label('Versión Actualizada'),
+                    \Filament\Forms\Components\DatePicker::make('data.fecha_aprobacion')
+                        ->label('Fecha Aprobación')
+                        ->default(now()),
+                ]),
+        ];
     }
 }

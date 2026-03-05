@@ -2,191 +2,28 @@
 
 namespace App\Filament\Resources\OperationalControls\Schemas;
 
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Select;
+use App\Filament\Resources\Activities\Schemas\BaseActivityForm;
 use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\Placeholder;
-use Illuminate\Support\HtmlString;
-use Carbon\Carbon;
-use Filament\Schemas\Components\Utilities\Get;
-use App\Enums\ActivityState;
 
-class OperationalControlForm
+class OperationalControlForm extends BaseActivityForm
 {
-    public static function configure(Schema $schema): Schema
+    public static function getSpecificFields(): array
     {
-        return $schema
-            ->components([
-                Select::make('program_id')
-                    ->relationship('program', 'nombre')
-                    ->required()
-                    ->searchable()
-                    ->preload()
-                    ->live()
-                    ->label('Programa'),
+        return [
+            TextInput::make('nombre_proceso')
+                ->required()
+                ->maxLength(255)
+                ->label('Nombre del Proceso'),
 
-                Select::make('program_component_id')
-                    ->label('Componente / Elemento')
-                    ->options(function (Get $get) {
-                        $programId = $get('program_id');
-                        if (!$programId) return [];
-                        return \App\Models\ProgramComponent::where('program_id', $programId)
-                            ->doesntHave('children')
-                            ->with('parent')
-                            ->get()
-                            ->pluck('full_name', 'id');
-                    })
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->disabled(fn (Get $get) => !$get('program_id')),
+            TextInput::make('parametro')
+                ->required()
+                ->maxLength(255)
+                ->label('Parámetro'),
 
-                Select::make('responsable_id')
-                    ->options(\App\Models\Position::pluck('nombre', 'id'))
-                    ->searchable()
-                    ->label('Cargo Responsable'),
-
-                TextInput::make('nombre_proceso')
-                    ->required()
-                    ->maxLength(255)
-                    ->label('Nombre del Proceso'),
-
-                TextInput::make('parametro')
-                    ->required()
-                    ->maxLength(255)
-                    ->label('Parámetro'),
-
-                TextInput::make('valor_esperado')
-                    ->required()
-                    ->maxLength(255)
-                    ->label('Valor Esperado'),
-
-                DatePicker::make('fecha_programada')
-                    ->required()
-                    ->label('Fecha Inicial')
-                    ->live(),
-
-                Select::make('frecuencia')
-                    ->label('Frecuencia')
-                    ->options([
-                        'diario' => 'Diario',
-                        'semanal' => 'Semanal',
-                        'mensual' => 'Mensual',
-                        'trimestral' => 'Trimestral',
-                        'semestral' => 'Semestral',
-                        'anual' => 'Anual',
-                        'eventual' => 'Eventualmente',
-                    ])
-                    ->default(fn ($record) => $record?->activity?->frecuencia)
-                    ->formatStateUsing(fn ($state, $record) => $state ?? $record?->activity?->frecuencia)
-                    ->live()
-                    ->afterStateUpdated(function ($set, ?string $state) {
-                        $map = [
-                            'diario' => 365,
-                            'semanal' => 52,
-                            'mensual' => 12,
-                            'trimestral' => 4,
-                            'semestral' => 2,
-                            'anual' => 1,
-                            'eventual' => 1,
-                        ];
-                        $set('veces_al_anio', $map[$state] ?? 1);
-                        $set('ejecuciones_realizadas', 0);
-                    }),
-
-                TextInput::make('veces_al_anio')
-                    ->label('Veces al Año')
-                    ->numeric()
-                    ->readOnly()
-                    ->default(fn ($record) => $record?->activity?->veces_al_anio ?? 1)
-                    ->formatStateUsing(fn ($state, $record) => $state ?? $record?->activity?->veces_al_anio),
-
-                TextInput::make('ejecuciones_realizadas')
-                    ->label('Ejecuciones Realizadas')
-                    ->numeric()
-                    ->readOnly()
-                    ->default(fn ($record) => $record?->activity?->ejecuciones_realizadas ?? 0)
-                    ->formatStateUsing(fn ($state, $record) => $state ?? $record?->activity?->ejecuciones_realizadas),
-
-                TextInput::make('detalle_frecuencia')
-                    ->label('Detalle de Eventualidad')
-                    ->placeholder('Especifique la razón (ej. Cuando ocurra, Personal nuevo)')
-                    ->required(fn (Get $get) => $get('frecuencia') === 'eventual')
-                    ->visible(fn (Get $get) => $get('frecuencia') === 'eventual')
-                    ->columnSpanFull(),
-
-                Placeholder::make('fechas_programadas_visual')
-                    ->label('Fechas del año')
-                    ->content(function (Get $get) {
-                        $fechaInicio = $get('fecha_programada');
-                        $frecuencia = $get('frecuencia');
-                        $vecesAlAnio = (int) $get('veces_al_anio');
-
-                        if (!$fechaInicio || !$frecuencia) {
-                            return new HtmlString('<span class="text-gray-500 italic">Seleccione fecha programada y frecuencia para ver el cronograma.</span>');
-                        }
-
-                        if ($frecuencia === 'eventual' || $vecesAlAnio === 0) {
-                            $detalle = $get('detalle_frecuencia') ? ': ' . htmlspecialchars($get('detalle_frecuencia')) : '';
-                            if ($fechaInicio) {
-                                try {
-                                    $date = Carbon::parse($fechaInicio)->format('d/m/Y');
-                                    return new HtmlString('<span class="text-gray-500 italic">Eventualmente' . $detalle . ' - <strong>Ejecutada el: ' . $date . '</strong></span>');
-                                } catch (\Exception $e) {}
-                            }
-                            return new HtmlString('<span class="text-gray-500 italic">Eventualmente' . $detalle . '</span>');
-                        }
-
-                        try {
-                            $date = Carbon::parse($fechaInicio);
-                        } catch (\Exception $e) {
-                            return 'Fecha inválida';
-                        }
-
-                        $fechas = [];
-                        $limit = match($frecuencia) {
-                            'diario' => 10,
-                            'semanal' => 12,
-                            'mensual' => 12,
-                            'trimestral' => 4,
-                            'semestral' => 2,
-                            'anual' => 1,
-                            'eventual' => 1,
-                            default => 1
-                        };
-
-                        for ($i = 0; $i < $limit; $i++) {
-                            $fechas[] = $date->format('d/m/Y');
-                            match($frecuencia) {
-                                'diario' => $date->addDay(),
-                                'semanal' => $date->addWeek(),
-                                'mensual' => $date->addMonth(),
-                                'trimestral' => $date->addMonths(3),
-                                'semestral' => $date->addMonths(6),
-                                'anual' => $date->addYear(),
-                                default => null,
-                            };
-                        }
-
-                        $html = '<div class="grid grid-cols-2 md:grid-cols-4 gap-2">';
-                        foreach ($fechas as $f) {
-                            $html .= "<div class='bg-gray-100 dark:bg-gray-800 p-2 rounded text-center text-sm'>{$f}</div>";
-                        }
-                        if ($frecuencia === 'diario' && $limit === 10) {
-                            $html .= "<div class='bg-gray-100 dark:bg-gray-800 p-2 rounded text-center text-sm'>...</div>";
-                        }
-                        $html .= '</div>';
-
-                        return new HtmlString($html);
-                    })
-                    ->columnSpanFull(),
-
-                Select::make('responsable_id')
-                    ->relationship('responsable', 'nombre')
-                    ->searchable()
-                    ->preload()
-                    ->label('Responsable'),
-            ]);
+            TextInput::make('valor_esperado')
+                ->required()
+                ->maxLength(255)
+                ->label('Valor Esperado'),
+        ];
     }
 }

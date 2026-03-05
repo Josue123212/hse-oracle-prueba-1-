@@ -15,6 +15,7 @@ class ListCommittees extends ListRecords
     protected function getHeaderWidgets(): array
     {
         return [
+            \App\Filament\Resources\Committees\Widgets\CommitteeStatsOverview::class,
             CommitteesForToday::class,
             EventualCommittees::class,
         ];
@@ -23,7 +24,17 @@ class ListCommittees extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()
+                ->label('Crear Comité')
+                ->using(function (array $data, string $model): \Illuminate\Database\Eloquent\Model {
+                    $service = new \App\Services\ActivityService();
+                    return $service->createWithType($data, 'comite');
+                }),
         ];
+    }
+
+    public function getHeaderWidgetsColumns(): int | array
+    {
+        return 2;
     }
 }

@@ -15,6 +15,7 @@ use App\Models\Promotion;
 use App\Models\OperationalControl;
 use App\Enums\ActivityState;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
@@ -41,6 +42,11 @@ class ActivityService
             // Merge defaults with data, data takes precedence
             $finalData = array_merge($defaults, $data);
             
+            // Fix for 'capacitacion' using 'tema' instead of 'nombre'
+            if ($type === 'capacitacion' && isset($finalData['tema']) && !isset($finalData['nombre'])) {
+                $finalData['nombre'] = $finalData['tema'];
+            }
+            
             // Map program_id_selector to program_id for satellite models if needed
             if (isset($finalData['program_id_selector'])) {
                 $finalData['program_id'] = $finalData['program_id_selector'];
@@ -60,6 +66,9 @@ class ActivityService
                 'fecha_inicio' => $fechaInicio,
                 'fecha_fin' => $fechaFin,
                 'responsable_id' => $finalData['responsable_id'] ?? null,
+                'responsable_delegado_id' => $finalData['responsable_delegado_id'] ?? null,
+                'location_id' => $finalData['location_id'] ?? null,
+                'apoyo' => $finalData['apoyo'] ?? null,
                 'es_obligatoria' => $finalData['es_obligatoria'],
                 'meta' => $finalData['meta'],
                 'veces_al_anio' => $finalData['veces_al_anio'],
@@ -318,7 +327,10 @@ class ActivityService
     {
         return DB::transaction(function () use ($satellite, $data) {
             // 1. Actualizar el registro Satélite
-            $satellite->update($data);
+            // Excluir campos que pertenecen exclusivamente a la Actividad para evitar errores en modelos con guarded=[]
+            $activityFields = ['location_id', 'responsable_delegado_id', 'apoyo'];
+            $satelliteData = Arr::except($data, $activityFields);
+            $satellite->update($satelliteData);
 
             // 2. Sincronizar campos comunes con la Actividad
             if ($satellite->activity) {
@@ -330,12 +342,22 @@ class ActivityService
                     'fecha_fin' => $data['fecha_programada'] ?? $satellite->fecha_programada,
                     'responsable_id' => $data['responsable_id'] ?? $satellite->responsable_id,
                     'veces_al_anio' => $data['veces_al_anio'] ?? $satellite->veces_al_anio ?? 1,
-                    // Otros campos que se deban sincronizar
                 ];
 
-                // Filtrar nulos si es necesario, o dejar que update maneje
-                // Aquí asumimos que si no viene en $data, mantenemos el valor actual del satélite (que ya fue actualizado)
-                
+                // Campos añadidos con verificación de existencia de clave para permitir nulos
+                if (array_key_exists('location_id', $data)) {
+                    $activityData['location_id'] = $data['location_id'];
+                }
+                if (array_key_exists('responsable_delegado_id', $data)) {
+                    $activityData['responsable_delegado_id'] = $data['responsable_delegado_id'];
+                }
+                if (array_key_exists('apoyo', $data)) {
+                    $activityData['apoyo'] = $data['apoyo'];
+                }
+                if (array_key_exists('es_obligatoria', $data)) {
+                    $activityData['es_obligatoria'] = $data['es_obligatoria'];
+                }
+
                 $satellite->activity->update($activityData);
                 
                 // Recalcular próxima ejecución si cambiaron fechas o frecuencia
@@ -393,12 +415,12 @@ class ActivityService
     public function generateExecutions(Activity $activity): void
     {
         if (!$activity->fecha_inicio || !$activity->frecuencia) {
-            \Log::info("generateExecutions: No start date or frequency", ['activity_id' => $activity->id]);
+            Log::info("generateExecutions: No start date or frequency", ['activity_id' => $activity->id]);
             return;
         }
 
         // Delete future/pending/failed executions
-        \Log::info("generateExecutions: Deleting existing executions for activity " . $activity->id);
+        Log::info("generateExecutions: Deleting existing executions for activity " . $activity->id);
         $deleted = $activity->executions()
              ->whereIn('estado', [
                  ActivityState::PROGRAMADO, 
@@ -407,7 +429,7 @@ class ActivityService
                  'vencido'
              ])
              ->delete();
-        \Log::info("generateExecutions: Deleted $deleted executions");
+        Log::info("generateExecutions: Deleted $deleted executions");
 
         if ($activity->frecuencia === 'eventual') {
             if ($activity->executions()->count() === 0) {
@@ -423,7 +445,7 @@ class ActivityService
         $current = Carbon::parse($activity->fecha_inicio);
         $veces = (int) ($activity->veces_al_anio ?? 1);
         
-        \Log::info("generateExecutions: Start", [
+        Log::info("generateExecutions: Start", [
             'activity_id' => $activity->id,
             'frecuencia' => $activity->frecuencia,
             'veces' => $veces,
@@ -456,9 +478,9 @@ class ActivityService
                     'fecha_programada' => $date,
                     'estado' => ActivityState::PROGRAMADO,
                 ]);
-                \Log::info("generateExecutions: Created execution", ['id' => $created->id]);
+                Log::info("generateExecutions: Created execution", ['id' => $created->id]);
             } else {
-                \Log::info("generateExecutions: Execution exists for date", ['date' => $date]);
+                Log::info("generateExecutions: Execution exists for date", ['date' => $date]);
             }
         }
     }

@@ -11,6 +11,8 @@ use App\Enums\ActivityState;
 
 class InspectionStatsOverview extends StatsOverviewWidget
 {
+    protected int | string | array $columnSpan = 'full';
+
     protected function getStats(): array
     {
         return [

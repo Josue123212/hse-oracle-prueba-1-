@@ -10,6 +10,8 @@ use App\Enums\ActivityState;
 
 class AuditStatsOverview extends StatsOverviewWidget
 {
+    protected int | string | array $columnSpan = 'full';
+
     protected function getStats(): array
     {
         return [
