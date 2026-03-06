@@ -1,4 +1,4 @@
-    <?php
+<?php
 
 namespace Database\Seeders;
 
@@ -30,8 +30,7 @@ class PlanQHSE2026Seeder extends Seeder
 
         // 0. Setup dependencies
         $defaultPositionType = PositionType::firstOrCreate(
-            ['nombre' => 'Administrativo'],
-            ['descripcion' => 'Personal administrativo y de gestión']
+            ['nombre' => 'Administrativo']
         );
 
         $program = Program::firstOrCreate(
@@ -129,9 +128,11 @@ class PlanQHSE2026Seeder extends Seeder
         $adminUser = \App\Models\User::first();
 
         // 3. Process Rows
-        foreach ($rows as $row) {
-            // Unpack row
-            $compKey = $row['compKey'];
+        foreach ($rows as $index => $row) {
+            try {
+                $this->command->info("Processing row " . ($index + 1) . " of " . count($rows) . ": " . $row['code']);
+                // Unpack row
+                $compKey = $row['compKey'];
             $code = $row['code'];
             $meta = $row['meta'];
             $sedeName = $row['sedeName'];
@@ -392,6 +393,10 @@ class PlanQHSE2026Seeder extends Seeder
                         'valor_esperado' => '100%',
                     ]));
                     break;
+            }
+            } catch (\Exception $e) {
+                $this->command->error("Error processing row " . ($index + 1) . " (" . $row['code'] . "): " . $e->getMessage());
+                $this->command->error($e->getTraceAsString());
             }
         }
         

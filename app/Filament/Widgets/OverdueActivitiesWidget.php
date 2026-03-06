@@ -19,6 +19,8 @@ class OverdueActivitiesWidget extends BaseWidget implements HasActions, HasForms
     use InteractsWithActions;
     use InteractsWithForms;
 
+    public bool $showAllExecutions = false;
+
     protected string $view = 'filament.widgets.overdue-activities-widget';
 
     protected static ?int $sort = 2; // Position after the chart (same row)
@@ -30,19 +32,21 @@ class OverdueActivitiesWidget extends BaseWidget implements HasActions, HasForms
     // Eliminamos el getId() del backend porque lo estamos asignando directamente en la vista Blade.
     // Esto evita conflictos y asegura que el ID esté en el elemento HTML correcto.
 
-    /**
-     * Este método se llama desde el frontend via wire:init cuando el widget ha terminado de cargar.
-     * Sirve para lanzar las notificaciones SOLO cuando el dashboard ya es visible.
-     */
-    public function checkNotifications(): void
+    public function mount(): void
     {
-        // Solo verificamos notificaciones si estamos en el dashboard (para evitar duplicados en otras vistas que usen este widget, si las hubiera)
-        // Aunque actualmente este widget parece exclusivo del dashboard.
+        // Solo verificamos notificaciones si estamos en el dashboard
         app(\App\Services\ActivityNotificationService::class)->checkAndNotify();
     }
 
     /**
-     * Obtiene las 3 actividades más críticas vencidas.
+     * Alterna la vista entre tarjetas y tabla
+     */
+    public function toggleView(): void
+    {
+        $this->showAllExecutions = !$this->showAllExecutions;
+    }
+
+    /**
      * Jerarquía de importancia: Incidente > Auditoría > Simulacro > Inspección > Comité > Capacitación > Documentación
      */
     public function getCriticalActivitiesProperty()
@@ -72,6 +76,36 @@ class OverdueActivitiesWidget extends BaseWidget implements HasActions, HasForms
             ->get();
     }
 
+    /**
+     * Obtiene todas las actividades vencidas para la vista de "Todas" (reemplazo de tabla)
+     */
+    public function getOverdueActivitiesProperty()
+    {
+        return ActivityExecution::query()
+            ->select('activity_executions.*')
+            ->join('activities', 'activity_executions.activity_id', '=', 'activities.id')
+            ->whereDate('activity_executions.fecha_programada', '<', now()->startOfDay())
+            ->whereIn('activity_executions.estado', [
+                ActivityState::PROGRAMADO,
+                ActivityState::EN_PROCESO,
+                ActivityState::NO_CUMPLIO
+            ])
+            ->orderByRaw("CASE 
+                WHEN activities.tipo = 'incidente' THEN 1
+                WHEN activities.tipo = 'auditoria' THEN 2
+                WHEN activities.tipo = 'simulacro' THEN 3
+                WHEN activities.tipo = 'inspeccion' THEN 4
+                WHEN activities.tipo = 'comite' THEN 5
+                WHEN activities.tipo = 'capacitacion' THEN 6
+                WHEN activities.tipo = 'documentacion' THEN 7
+                ELSE 8 
+            END ASC")
+            ->orderBy('activity_executions.fecha_programada', 'asc')
+            ->with('activity')
+            ->limit(50)
+            ->get();
+    }
+
     public function viewActivityAction(): Action
     {
         return \Filament\Actions\ViewAction::make('viewActivity')
@@ -80,30 +114,23 @@ class OverdueActivitiesWidget extends BaseWidget implements HasActions, HasForms
             ->color('gray')
             ->modalHeading('Detalles de la Actividad')
             ->infolist([
-                \Filament\Infolists\Components\Section::make('Detalles')
-                    ->schema([
-                        \Filament\Infolists\Components\Grid::make(2)
-                            ->schema([
-                                \Filament\Infolists\Components\TextEntry::make('activity.nombre')
-                                    ->label('Actividad')
-                                    ->weight('bold'),
-                                \Filament\Infolists\Components\TextEntry::make('activity.tipo')
-                                    ->label('Tipo')
-                                    ->formatStateUsing(fn ($state) => ucfirst($state))
-                                    ->badge(),
-                                \Filament\Infolists\Components\TextEntry::make('fecha_programada')
-                                    ->label('Fecha Programada')
-                                    ->date('d/m/Y')
-                                    ->color('danger'),
-                                \Filament\Infolists\Components\TextEntry::make('activity.responsable.nombre')
-                                    ->label('Responsable')
-                                    ->placeholder('Sin asignar'),
-                                \Filament\Infolists\Components\TextEntry::make('activity.descripcion')
-                                    ->label('Descripción')
-                                    ->columnSpanFull()
-                                    ->placeholder('Sin descripción'),
-                            ]),
-                    ]),
+                \Filament\Infolists\Components\TextEntry::make('activity.nombre')
+                    ->label('Actividad')
+                    ->weight('bold'),
+                \Filament\Infolists\Components\TextEntry::make('activity.tipo')
+                    ->label('Tipo')
+                    ->formatStateUsing(fn ($state) => ucfirst($state))
+                    ->badge(),
+                \Filament\Infolists\Components\TextEntry::make('fecha_programada')
+                    ->label('Fecha Programada')
+                    ->date('d/m/Y')
+                    ->color('danger'),
+                \Filament\Infolists\Components\TextEntry::make('activity.responsable.nombre')
+                    ->label('Responsable')
+                    ->placeholder('Sin asignar'),
+                \Filament\Infolists\Components\TextEntry::make('activity.descripcion')
+                    ->label('Descripción')
+                    ->placeholder('Sin descripción'),
             ])
             ->record(fn (array $arguments) => ActivityExecution::find($arguments['record']));
     }
@@ -257,7 +284,8 @@ class OverdueActivitiesWidget extends BaseWidget implements HasActions, HasForms
                                             ->placeholder('Sin descripción'),
                                     ]),
                             ]),
-                    ]),
+                    ])
+                    ->extraModalWindowAttributes(['style' => 'z-index: 100 !important;']),
                 Action::make('regularizar')
                     ->label('Regularizar')
                     ->icon('heroicon-o-play')
