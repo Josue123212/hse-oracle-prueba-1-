@@ -81,7 +81,7 @@
                             strokeDashArray: 4,
                         },
                         title: {
-                            text: 'Actividades por Tipo',
+                            text: 'Ejecuciones Totales por Tipo',
                             align: 'left',
                             style: {
                                 fontSize: '16px',

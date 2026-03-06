@@ -14,6 +14,9 @@ class ListDocumentations extends ListRecords
 
     protected function getHeaderWidgets(): array
     {
+        // Notificaciones específicas para documentaciones
+        app(\App\Services\ActivityNotificationService::class)->checkAndNotify('documentacion');
+
         return [
             \App\Filament\Resources\Documentations\Widgets\DocumentationStatsOverview::class,
             DocumentsForToday::class,

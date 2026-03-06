@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Activity;
+use App\Models\ActivityExecution;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\DB;
 
@@ -30,10 +31,11 @@ class ActivitiesByTypeChart extends Widget
             'control_operacional' => 'Control Operacional',
         ];
 
-        // Get count of activities by type from DB
-        $dbData = Activity::select('tipo', DB::raw('count(*) as count'))
-            ->groupBy('tipo')
-            ->pluck('count', 'tipo')
+        // Get count of activity executions by activity type from DB
+        $dbData = ActivityExecution::join('activities', 'activity_executions.activity_id', '=', 'activities.id')
+            ->select('activities.tipo', DB::raw('count(*) as count'))
+            ->groupBy('activities.tipo')
+            ->pluck('count', 'activities.tipo')
             ->toArray();
 
         $labels = [];

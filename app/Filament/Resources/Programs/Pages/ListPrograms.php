@@ -13,6 +13,8 @@ class ListPrograms extends ListRecords
 
     protected function getHeaderWidgets(): array
     {
+        // Notificaciones generales del programa (si aplica) o específicas
+        // Por ahora lo dejamos genérico o sin notificaciones si no se requiere
         return [
             ProgramStatsOverview::class,
         ];

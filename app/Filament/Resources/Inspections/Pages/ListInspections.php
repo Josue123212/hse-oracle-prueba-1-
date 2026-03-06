@@ -18,6 +18,9 @@ class ListInspections extends ListRecords
 
     protected function getHeaderWidgets(): array
     {
+        // Notificaciones específicas para inspecciones
+        app(\App\Services\ActivityNotificationService::class)->checkAndNotify('inspeccion');
+
         return [
             InspectionStatsOverview::class,
             InspectionsForToday::class,

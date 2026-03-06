@@ -30,6 +30,9 @@ class ListAudits extends ListRecords
 
     protected function getHeaderWidgets(): array
     {
+        // Notificaciones específicas para auditorías
+        app(\App\Services\ActivityNotificationService::class)->checkAndNotify('auditoria');
+
         return [
             AuditStatsOverview::class,
             AuditsForToday::class,

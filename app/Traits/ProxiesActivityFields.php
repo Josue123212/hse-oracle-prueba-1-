@@ -14,35 +14,31 @@ trait ProxiesActivityFields
 
     public static function bootProxiesActivityFields()
     {
-        /*
         static::saving(function (Model $model) {
             $proxied = $model->getProxiedFields();
+            $attributes = $model->getAttributes();
+            
             foreach ($proxied as $field) {
-                // Check if the attribute is set in the attributes array
-                // We access attributes directly to avoid triggering accessors
-                $attributes = $model->getAttributes();
+                // Si el campo existe en los atributos (fue seteado masivamente o individualmente)
                 if (array_key_exists($field, $attributes)) {
-                    // Store in temporary array property (not attribute)
+                    // Guardamos el valor temporalmente
                     $model->tempProxies[$field] = $attributes[$field];
-                    // Remove from attributes so it's not saved to DB
-                    unset($model->attributes[$field]);
+                    
+                    // Lo eliminamos de los atributos del modelo para que no intente guardarlo en su tabla
+                    unset($model[$field]);
                 }
             }
         });
-        */
 
-        /*
         static::saved(function (Model $model) {
-            $updates = $model->tempProxies; // Access the property
-            
-            if (!empty($updates) && $model->activity) {
-                $model->activity->update($updates);
+            // Si hay datos proxeados y existe la relación con activity
+            if (!empty($model->tempProxies) && $model->activity) {
+                $model->activity->update($model->tempProxies);
             }
             
-            // Clear temp proxies
+            // Limpiamos
             $model->tempProxies = [];
         });
-        */
     }
 
 

@@ -14,6 +14,9 @@ class ListCommittees extends ListRecords
 
     protected function getHeaderWidgets(): array
     {
+        // Notificaciones específicas para comités
+        app(\App\Services\ActivityNotificationService::class)->checkAndNotify('comite');
+
         return [
             \App\Filament\Resources\Committees\Widgets\CommitteeStatsOverview::class,
             CommitteesForToday::class,

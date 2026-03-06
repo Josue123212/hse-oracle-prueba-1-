@@ -14,6 +14,9 @@ class ListDrills extends ListRecords
 
     protected function getHeaderWidgets(): array
     {
+        // Notificaciones específicas para simulacros
+        app(\App\Services\ActivityNotificationService::class)->checkAndNotify('simulacro');
+
         return [
             \App\Filament\Resources\Drills\Widgets\DrillStatsOverview::class,
             \App\Filament\Resources\Drills\Widgets\DrillCalendarWidget::class,

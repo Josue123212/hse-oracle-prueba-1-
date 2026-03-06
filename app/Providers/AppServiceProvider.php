@@ -153,31 +153,10 @@ class AppServiceProvider extends ServiceProvider
             return new FilesystemAdapter($driver, $adapter, $config);
         });
 
-        // Sticky Header for Dashboard (Panel de Control)
+        // Sticky Header for All Admin Pages
         FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,
-            function (): string {
-                if (request()->routeIs('filament.admin.pages.dashboard')) {
-                    return <<<'HTML'
-                        <style>
-                            .fi-header {
-                                position: sticky;
-                                top: 0;
-                                z-index: 20;
-                                background-color: rgb(249, 250, 251); /* Light mode bg-gray-50 */
-                                padding-top: 1rem;
-                                padding-bottom: 1rem;
-                                border-bottom: 1px solid rgb(229, 231, 235); /* border-gray-200 */
-                            }
-                            .dark .fi-header {
-                                background-color: rgb(3, 7, 18); /* Dark mode bg-gray-950 */
-                                border-bottom-color: rgb(31, 41, 55); /* border-gray-800 */
-                            }
-                        </style>
-HTML;
-                }
-                return '';
-            }
+            fn () => view('components.sticky-header')
         );
 
         // Register Custom Glass Modal globally

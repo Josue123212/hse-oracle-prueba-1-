@@ -1,23 +1,115 @@
-<x-filament-widgets::widget>
-    <div class="mb-4 flex items-center gap-x-3">
+<x-filament-widgets::widget id="overdue-activities-widget">
+    {{-- Script para manejar la apertura automática del modal cuando hay hash en la URL --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const targetHash = '#open-overdue-modal';
+            
+            const checkAndOpen = () => {
+                if (window.location.hash === targetHash) {
+                    // Disparar evento de apertura de modal
+                    window.dispatchEvent(new CustomEvent('open-modal', { detail: { id: 'overdue-activities-modal' } }));
+                    
+                    // Opcional: Limpiar el hash para que no se vuelva a abrir al recargar (comentado si se prefiere persistencia mientras no se navegue)
+                    // history.replaceState(null, null, ' ');
+                    return true;
+                }
+                return false;
+            };
+
+            // Verificar inicialmente
+            setTimeout(checkAndOpen, 500); // Pequeño delay inicial
+
+            // Reintentar si Livewire/Filament carga dinámicamente
+            let attempts = 0;
+            const interval = setInterval(() => {
+                attempts++;
+                if (checkAndOpen() || attempts > 10) {
+                    clearInterval(interval);
+                }
+            }, 1000);
+        });
+    </script>
+
+    {{-- Trigger notification check after widget loads --}}
+    <div wire:init="checkNotifications"></div>
+
+    <div class="flex items-center justify-between gap-x-3 mb-4">
         <h2 class="text-lg font-bold tracking-tight text-gray-950 dark:text-white sm:text-xl">
             Ejecuciones Vencidas (Urgente)
         </h2>
-    </div>
-    <x-filament::section
-        class="fi-wi-stats-overview-stat-chart-container relative overflow-hidden"
-    >
-        <div 
-            class="overdue-activities-table-wrapper relative"
-            style="max-height: 350px; overflow: auto;"
+        
+        <x-filament::button 
+            @click="$dispatch('open-modal', { id: 'overdue-activities-modal' })" 
+            color="danger"
+            icon="heroicon-o-exclamation-triangle"
         >
+            Ver ejecuciones urgentes
+        </x-filament::button>
+    </div>
+
+    {{-- Seccion de Actividades Criticas --}}
+    @if($this->criticalActivities->isNotEmpty())
+        <div class="mb-6">
+            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider flex items-center gap-2">
+                <x-heroicon-m-fire class="w-4 h-4 text-red-500" />
+                Actividades Más Críticas
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    @foreach($this->criticalActivities as $execution)
+                        <div 
+                            wire:click="mountAction('viewActivity', { record: {{ $execution->id }} })"
+                            class="relative group bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 hover:shadow-md transition-all duration-300 cursor-pointer"
+                        >
+                            <div class="absolute top-0 left-0 w-1 h-full bg-red-500 rounded-l-xl"></div>
+                            
+                            <div class="flex flex-col h-full pl-3">
+                                <div class="flex items-start justify-between mb-2">
+                                    <span class="inline-flex items-center rounded-md bg-red-50 dark:bg-red-900/20 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400 ring-1 ring-inset ring-red-600/10">
+                                        {{ ucfirst($execution->activity->tipo) }}
+                                    </span>
+                                    <div class="text-xs text-gray-400 font-mono">
+                                        {{ $execution->fecha_programada->diffForHumans() }}
+                                    </div>
+                                </div>
+
+                                <h4 class="text-sm font-bold text-gray-900 dark:text-white line-clamp-2 mb-2" title="{{ $execution->activity->nombre }}">
+                                    {{ $execution->activity->nombre }}
+                                </h4>
+
+                                <div class="mt-auto pt-2 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-2 text-xs">
+                                    <div class="flex flex-col gap-1 min-w-0">
+                                        <div class="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                                            <x-heroicon-m-calendar class="w-3 h-3 flex-shrink-0" />
+                                            <span class="truncate">{{ $execution->fecha_programada->format('d/m/Y') }}</span>
+                                        </div>
+                                        @if($execution->activity->responsable)
+                                            <div class="flex items-center gap-1 text-gray-500 dark:text-gray-400 truncate" title="{{ $execution->activity->responsable->nombre }}">
+                                                <x-heroicon-m-user class="w-3 h-3 flex-shrink-0" />
+                                                <span class="truncate">{{ $execution->activity->responsable->nombre }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                    
+                                    <div class="flex-shrink-0" wire:click.stop>
+                                        {{ ($this->regularizeActivityAction)(['record' => $execution->id]) }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            
+            <x-filament-actions::modals />
+        @endif
+
+    <x-filament::modal id="overdue-activities-modal" width="6xl">
+        <x-slot name="heading">
+            Listado de Ejecuciones Vencidas
+        </x-slot>
+
+        <div class="overdue-activities-table-wrapper relative">
             {{ $this->table }}
         </div>
-        <style>
-            .overdue-activities-table-wrapper .fi-ta-content,
-            .overdue-activities-table-wrapper .fi-ta-content-ctn {
-                overflow: visible !important;
-            }
-        </style>
-    </x-filament::section>
+    </x-filament::modal>
 </x-filament-widgets::widget>
