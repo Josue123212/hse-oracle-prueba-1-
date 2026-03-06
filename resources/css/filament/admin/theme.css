@@ -110,3 +110,18 @@
     display: none;
 }
 
+/* Custom Sidebar Background */
+.fi-sidebar {
+    background-color: #F9FBFD !important;
+}
+
+.fi-sidebar-header,
+.fi-sidebar-footer,
+.fi-sidebar-nav {
+    background-color: transparent !important;
+}
+
+/* Ensure items inside sidebar don't have white background if they usually do */
+.fi-sidebar-item {
+    background-color: transparent;
+}

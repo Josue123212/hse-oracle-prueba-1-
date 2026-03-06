@@ -16,7 +16,7 @@ class ListDrills extends ListRecords
     {
         return [
             \App\Filament\Resources\Drills\Widgets\DrillStatsOverview::class,
-            DrillsForToday::class,
+            \App\Filament\Resources\Drills\Widgets\DrillCalendarWidget::class,
             EventualDrills::class,
         ];
     }
@@ -35,6 +35,6 @@ class ListDrills extends ListRecords
 
     public function getHeaderWidgetsColumns(): int | array
     {
-        return 2;
+        return 3;
     }
 }

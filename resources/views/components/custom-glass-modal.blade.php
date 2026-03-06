@@ -40,6 +40,16 @@
         body = data.body || ''; 
         type = data.type || 'info';
     "
+    @notify.window="
+        // Intercept Filament notifications for validation errors
+        if ($event.detail.status === 'danger') {
+            open = true;
+            title = 'Atención';
+            // Use the notification title or a default message
+            body = $event.detail.title || 'Faltan campos por llenar. Por favor verifique el formulario.';
+            type = 'error';
+        }
+    "
 >
     <template x-teleport="body">
         <div
