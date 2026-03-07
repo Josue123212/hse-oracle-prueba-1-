@@ -169,7 +169,10 @@ abstract class BaseEventualActivityWidget extends BaseWidget
     protected function hasExecutedToday(Activity $activity): bool
     {
         return $activity->executions()
-            ->whereDate('created_at', now())
+            ->whereBetween('created_at', [
+                now()->startOfDay()->utc(),
+                now()->endOfDay()->utc()
+            ])
             ->exists();
     }
 

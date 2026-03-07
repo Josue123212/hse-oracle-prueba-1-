@@ -162,7 +162,7 @@
                     $componentExecuted = 0;
                     foreach($component->activities as $act) {
                         $componentPlanned += $act->veces_al_anio;
-                        $componentExecuted += $act->ejecuciones_realizadas;
+                        $componentExecuted += $act->executions->where('estado', \App\Enums\ActivityState::EJECUTADO)->count();
                     }
                     $componentPercent = $componentPlanned > 0 ? round(($componentExecuted / $componentPlanned) * 100) : 0;
                     
@@ -182,7 +182,8 @@
                     @foreach($component->activities as $index => $activity)
                         @php
                             $actPlanned = $activity->veces_al_anio;
-                            $actExecuted = $activity->ejecuciones_realizadas;
+                            // Recalcular ejecuciones reales desde la relación para asegurar consistencia
+                            $actExecuted = $activity->executions->where('estado', \App\Enums\ActivityState::EJECUTADO)->count();
                             $actPercent = $actPlanned > 0 ? round(($actExecuted / $actPlanned) * 100) : 0;
                         @endphp
                         <tr>
@@ -261,7 +262,13 @@
                             @endforeach
 
                             <!-- Cumplimiento Individual -->
-                            <td>{{ $actPercent }}%</td>
+                            <td>
+                                @if($activity->veces_al_anio > 0)
+                                    {{ round(($activity->ejecuciones_realizadas / $activity->veces_al_anio) * 100) }}%
+                                @else
+                                    0%
+                                @endif
+                            </td>
                             <td></td>
                         </tr>
                     @endforeach
@@ -269,7 +276,23 @@
                     <!-- Fila de Porcentaje del Componente -->
                     <tr style="background-color: #f2f2f2; font-weight: bold;">
                         <td colspan="20" style="text-align: right; padding-right: 10px;">% AVANCE POR SUBPROGRAMA</td>
-                        <td colspan="2" style="text-align: center;">{{ $componentPercent }}%</td>
+                        <td colspan="2" style="text-align: center;">
+                            @php
+                                // Cálculo del promedio de los porcentajes de las actividades
+                                $totalPercentage = 0;
+                                $activityCount = $component->activities->count();
+                                
+                                foreach($component->activities as $act) {
+                                    $actPlanned = $act->veces_al_anio;
+                                    $actExecuted = $act->executions->where('estado', \App\Enums\ActivityState::EJECUTADO)->count();
+                                    $actPercent = $actPlanned > 0 ? ($actExecuted / $actPlanned) * 100 : 0;
+                                    $totalPercentage += $actPercent;
+                                }
+                                
+                                $componentAveragePercent = $activityCount > 0 ? round($totalPercentage / $activityCount) : 0;
+                            @endphp
+                            {{ $componentAveragePercent }}%
+                        </td>
                     </tr>
                 @else
                     <tr>
@@ -284,7 +307,23 @@
             
             <!-- Fila Total del Programa -->
             @php
-                $totalProgramPercent = $totalProgramPlanned > 0 ? round(($totalProgramExecuted / $totalProgramPlanned) * 100) : 0;
+                // Cálculo del promedio total del programa (promedio de los promedios de componentes o promedio de todas las actividades)
+                // Usaremos promedio de todas las actividades para mayor precisión general
+                $totalProgramPercentageSum = 0;
+                $totalActivitiesCount = 0;
+                
+                foreach($program->components as $component) {
+                    foreach($component->activities as $act) {
+                        $actPlanned = $act->veces_al_anio;
+                        // Recalcular ejecuciones reales
+                        $actExecuted = $act->executions->where('estado', \App\Enums\ActivityState::EJECUTADO)->count();
+                        $actPercent = $actPlanned > 0 ? ($actExecuted / $actPlanned) * 100 : 0;
+                        $totalProgramPercentageSum += $actPercent;
+                        $totalActivitiesCount++;
+                    }
+                }
+                
+                $totalProgramPercent = $totalActivitiesCount > 0 ? round($totalProgramPercentageSum / $totalActivitiesCount) : 0;
             @endphp
             <tr style="background-color: #003366; color: white; font-weight: bold;">
                 <td colspan="20" style="text-align: right; padding-right: 10px;">% AVANCE TOTAL DEL PROGRAMA</td>

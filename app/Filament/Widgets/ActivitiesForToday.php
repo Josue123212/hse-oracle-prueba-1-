@@ -103,7 +103,8 @@ class ActivitiesForToday extends BaseWidget
                     ->preserveFilenames()
                     // ->multiple() // Desactivado temporalmente para simplificar depuración si no es necesario
                     // ->storeFileNamesIn('data->file_names')
-                    ->columnSpanFull(),
+                    ->columnSpanFull()
+                    ->required(), // Aseguramos que se requiera evidencia para completar la actividad
 
                 \Filament\Schemas\Components\Section::make('Detalles de Auditoría')
                     ->schema([
@@ -254,10 +255,13 @@ class ActivitiesForToday extends BaseWidget
                         \Illuminate\Support\Facades\Log::info("Ruta local evidencia: " . ($evidenciaLocalPath ?? 'NULL'));
 
                         $finalDrivePath = null;
+                        $evidenciaToSave = null;
 
                         if ($evidenciaLocalPath) {
                             $targetDirectory = \App\Services\DrivePathGenerator::generate($record->activity);
                             $fileName = basename($evidenciaLocalPath);
+                            
+                            // Asegurar que la ruta no tenga dobles slashes
                             $targetPath = trim($targetDirectory, '/') . '/' . $fileName;
                             
                             try {
@@ -265,7 +269,7 @@ class ActivitiesForToday extends BaseWidget
                                 $googleDisk = \Illuminate\Support\Facades\Storage::disk('google');
                                 
                                 if ($localDisk->exists($evidenciaLocalPath)) {
-                                    \Illuminate\Support\Facades\Log::info("Subiendo archivo local a Google Drive...");
+                                    \Illuminate\Support\Facades\Log::info("Subiendo archivo local a Google Drive (Ruta: $targetPath)...");
                                     
                                     // Asegurar directorio destino en Drive
                                     if (!$googleDisk->exists($targetDirectory)) {
@@ -274,28 +278,57 @@ class ActivitiesForToday extends BaseWidget
                                     
                                     // Leer archivo local y subir a Drive
                                     $fileContents = $localDisk->get($evidenciaLocalPath);
-                                    $googleDisk->put($targetPath, $fileContents);
+                                    $putResult = $googleDisk->put($targetPath, $fileContents);
                                     
-                                    if ($googleDisk->exists($targetPath)) {
+                                    if ($putResult) {
                                         $finalDrivePath = $targetPath;
                                         \Illuminate\Support\Facades\Log::info("¡Archivo subido exitosamente a Drive!: {$finalDrivePath}");
                                         
                                         // Opcional: Eliminar el temporal local
                                         $localDisk->delete($evidenciaLocalPath);
                                     } else {
-                                        \Illuminate\Support\Facades\Log::error("Fallo al verificar el archivo en Drive tras subida.");
+                                        \Illuminate\Support\Facades\Log::error("Fallo al subir el archivo a Drive (put devolvió false).");
+                                        throw new \Exception("Fallo al subir el archivo a Drive.");
                                     }
                                 } else {
                                      \Illuminate\Support\Facades\Log::warning("El archivo local no se encuentra: {$evidenciaLocalPath}");
                                 }
                             } catch (\Exception $e) {
                                 \Illuminate\Support\Facades\Log::error("ActivitiesForToday: Error subiendo archivo a Drive: " . $e->getMessage());
+                                \Illuminate\Support\Facades\Log::error($e->getTraceAsString());
+                                
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Error al subir evidencia')
+                                    ->body('No se pudo subir el archivo a Google Drive. Por favor intente nuevamente.')
+                                    ->danger()
+                                    ->send();
+                                    
+                                // Detener ejecución para no guardar estado "Ejecutado" sin evidencia
+                                return;
                             }
+                        } else {
+                             \Illuminate\Support\Facades\Log::warning("No se proporcionó evidencia (evidenciaLocalPath vacío).");
                         }
+
+                        // Guardar la evidencia como JSON array string para compatibilidad con el sistema
+                        // Si ya existen evidencias, podríamos querer fusionarlas, pero en "ActivitiesForToday"
+                        // asumimos que es la primera ejecución. Por si acaso, fusionamos.
+                        $currentEvidences = $record->evidencia;
+                        if (is_string($currentEvidences)) {
+                            $decoded = json_decode($currentEvidences, true);
+                            $currentEvidences = is_array($decoded) ? $decoded : [$currentEvidences];
+                        }
+                        $currentEvidences = is_array($currentEvidences) ? $currentEvidences : [];
+                        
+                        if ($finalDrivePath) {
+                            $currentEvidences[] = $finalDrivePath;
+                        }
+                        
+                        $evidenciaToSave = !empty($currentEvidences) ? json_encode($currentEvidences) : null;
 
                         $record->update([
                             'observacion' => $data['observacion'] ?? null,
-                            'evidencia' => $finalDrivePath, // Guardamos la ruta de Drive
+                            'evidencia' => $evidenciaToSave, // Guardamos como JSON array
                             'estado' => \App\Enums\ActivityState::EJECUTADO,
                             'fecha_ejecucion_real' => now(), // Se llena con la fecha actual de ejecución
                             'data' => $data['data'] ?? [],

@@ -1,35 +1,6 @@
 <x-filament-widgets::widget id="overdue-activities-widget">
-    {{-- Script para manejar la apertura automática del modal cuando hay hash en la URL --}}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const targetHash = '#open-overdue-modal';
-            
-            const checkAndOpen = () => {
-                if (window.location.hash === targetHash) {
-                    // Disparar evento de apertura de modal
-                    window.dispatchEvent(new CustomEvent('open-modal', { detail: { id: 'overdue-activities-modal' } }));
-                    
-                    // Opcional: Limpiar el hash para que no se vuelva a abrir al recargar (comentado si se prefiere persistencia mientras no se navegue)
-                    // history.replaceState(null, null, ' ');
-                    return true;
-                }
-                return false;
-            };
-
-            // Verificar inicialmente
-            setTimeout(checkAndOpen, 500); // Pequeño delay inicial
-
-            // Reintentar si Livewire/Filament carga dinámicamente
-            let attempts = 0;
-            const interval = setInterval(() => {
-                attempts++;
-                if (checkAndOpen() || attempts > 10) {
-                    clearInterval(interval);
-                }
-            }, 1000);
-        });
-    </script>
-
+    {{-- Script de apertura automática eliminado a petición: solo scroll requerido --}}
+    
     {{-- Trigger notification check removed from here --}}
 
     <div class="flex items-center justify-between gap-x-3 mb-4">
@@ -43,7 +14,7 @@
                 color="danger"
                 icon="heroicon-o-exclamation-triangle"
             >
-                Ver ejecuciones urgentes
+                Ver todas las urgentes
             </x-filament::button>
         @else
             <x-filament::button 
@@ -68,7 +39,8 @@
                         @foreach($this->criticalActivities as $execution)
                             <div 
                                 wire:click="mountAction('viewActivity', { record: {{ $execution->id }} })"
-                                class="relative group bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 hover:shadow-md transition-all duration-300 cursor-pointer"
+                                class="relative group bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col"
+                                style="min-height: 200px;"
                             >
                                 <div class="absolute top-0 left-0 w-1 h-full bg-red-500 rounded-l-xl"></div>
                                 

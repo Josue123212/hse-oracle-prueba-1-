@@ -44,7 +44,7 @@ class PlanQHSE2026Seeder extends Seeder
         );
 
         // 1. Read MD File
-        $mdPath = 'e:\pasantias_avance\hse-oracle-prueba-1-\planteamiento\rellenado_de_datos.md';
+        $mdPath = base_path('planteamiento/rellenado_de_datos.md');
         if (!File::exists($mdPath)) {
             $this->command->error("Archivo MD no encontrado: $mdPath");
             return;
@@ -278,7 +278,7 @@ class PlanQHSE2026Seeder extends Seeder
                     ActivityExecution::create([
                         'activity_id' => $activity->id,
                         'fecha_programada' => $date->format('Y-m-d'),
-                        'estado' => ActivityState::PROGRAMADO,
+                        'estado' => ActivityState::PROGRAMADO->value,
                         'observacion' => 'Generado automáticamente (Diario)',
                     ]);
                 }
@@ -291,7 +291,7 @@ class PlanQHSE2026Seeder extends Seeder
                     ActivityExecution::create([
                         'activity_id' => $activity->id,
                         'fecha_programada' => $date,
-                        'estado' => ActivityState::PROGRAMADO,
+                        'estado' => ActivityState::PROGRAMADO->value,
                         'observacion' => 'Generado automáticamente',
                     ]);
                 }

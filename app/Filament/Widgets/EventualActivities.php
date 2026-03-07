@@ -34,7 +34,10 @@ class EventualActivities extends BaseWidget
                 Activity::query()
                     ->where('frecuencia', 'eventual')
                     ->with(['executions' => function ($query) {
-                        $query->whereDate('created_at', now());
+                        $query->whereBetween('created_at', [
+                            now()->startOfDay()->utc(),
+                            now()->endOfDay()->utc()
+                        ]);
                     }])
             )
             ->columns([

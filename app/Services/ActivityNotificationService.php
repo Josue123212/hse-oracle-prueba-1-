@@ -46,8 +46,8 @@ class ActivityNotificationService
                 type: 'danger',
                 persistent: true,
                 user: $user,
-                // Siempre llevamos al Dashboard con scroll, sin importar si es vista específica o no.
-                scrollTo: 'open-overdue-modal'
+                // Siempre llevamos al Dashboard con scroll al widget, sin abrir modal.
+                scrollTo: 'overdue-activities-widget'
             );
             // Ya no retornamos aquí, permitimos que continúe a "Hoy"
         }

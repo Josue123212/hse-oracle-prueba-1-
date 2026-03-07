@@ -131,12 +131,58 @@
                     @endforeach
                     
                     <td style="text-align: center; border: 1px solid #000000;">
-                        <!-- Placeholder for formula or calculation -->
-                        0%
+                        @php
+                            $actPlanned = $activity->veces_al_anio;
+                            // Recalcular ejecuciones reales desde la relación
+                            $actExecuted = $activity->executions->where('estado', \App\Enums\ActivityState::EJECUTADO)->count();
+                            $actPercent = $actPlanned > 0 ? round(($actExecuted / $actPlanned) * 100) : 0;
+                        @endphp
+                        {{ $actPercent }}%
                     </td>
-                    <td style="border: 1px solid #000000;"></td>
+                    <td style="text-align: center; border: 1px solid #000000;">{{ $activity->observacion_general ?? '-' }}</td>
                 </tr>
             @endforeach
+            <!-- Fila de Porcentaje del Componente -->
+            <tr>
+                <td colspan="33" style="font-weight: bold; text-align: right; background-color: #f2f2f2; border: 1px solid #000000;">% AVANCE POR SUBPROGRAMA</td>
+                <td style="font-weight: bold; text-align: center; background-color: #f2f2f2; border: 1px solid #000000;">
+                    @php
+                        $compTotalPercent = 0;
+                        $compActivityCount = $component->activities->count();
+                        foreach($component->activities as $act) {
+                            $p = $act->veces_al_anio;
+                            $e = $act->executions->where('estado', \App\Enums\ActivityState::EJECUTADO)->count();
+                            $compTotalPercent += ($p > 0 ? ($e / $p) * 100 : 0);
+                        }
+                        $compAverage = $compActivityCount > 0 ? round($compTotalPercent / $compActivityCount) : 0;
+                    @endphp
+                    {{ $compAverage }}%
+                </td>
+                <td style="background-color: #f2f2f2; border: 1px solid #000000;"></td>
+            </tr>
         @endforeach
+        
+        <!-- Fila Total del Programa -->
+        <tr>
+            <td colspan="33" style="font-weight: bold; text-align: right; background-color: #003366; color: white; border: 1px solid #000000;">% AVANCE TOTAL DEL PROGRAMA</td>
+            <td style="font-weight: bold; text-align: center; background-color: #003366; color: white; border: 1px solid #000000;">
+                @php
+                    $progTotalPercent = 0;
+                    $progActivityCount = 0;
+                    foreach($program->components as $comp) {
+                        foreach($comp->activities as $act) {
+                            $p = $act->veces_al_anio;
+                            // Recalcular ejecuciones reales
+                            $e = $act->executions->where('estado', \App\Enums\ActivityState::EJECUTADO)->count();
+                            $progTotalPercent += ($p > 0 ? ($e / $p) * 100 : 0);
+                            $progActivityCount++;
+                        }
+                    }
+                    $progAverage = $progActivityCount > 0 ? round($progTotalPercent / $progActivityCount) : 0;
+                @endphp
+                {{ $progAverage }}%
+            </td>
+            <td style="background-color: #003366; color: white; border: 1px solid #000000;"></td>
+        </tr>
     </tbody>
 </table>
